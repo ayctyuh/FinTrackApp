@@ -5,12 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import com.fintrack.project.ui.screens.DashboardScreen
+import com.fintrack.project.ui.screens.LoginScreen
+import com.fintrack.project.ui.screens.SignupScreen
+import com.fintrack.project.ui.screens.SplashScreen
+import com.fintrack.project.ui.screens.WelcomeScreen
 import com.fintrack.project.ui.theme.FinTrackProjectTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +21,59 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FinTrackProjectTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    var appState by remember {
+                        mutableStateOf<AppState>(AppState.SPLASH)
+                    }
+
+                    when (appState) {
+                        AppState.SPLASH -> {
+                            SplashScreen(
+                                onSplashComplete = { appState = AppState.WELCOME }
+                            )
+                        }
+                        AppState.WELCOME -> {
+                            WelcomeScreen(
+                                onLoginClick = { appState = AppState.LOGIN },
+                                onSignupClick = { appState = AppState.SIGNUP },
+                                onForgotPasswordClick = { appState = AppState.FORGOT_PASSWORD }
+                            )
+                        }
+                        AppState.LOGIN -> {
+                            LoginScreen(
+                                onLoginSuccess = { appState = AppState.DASHBOARD },
+                                onSignupClick = { appState = AppState.SIGNUP }
+                            )
+                        }
+                        AppState.SIGNUP -> {
+                            SignupScreen(
+                                onSignupSuccess = { appState = AppState.LOGIN },
+                                onBackClick = { appState = AppState.LOGIN }
+                            )
+                        }
+                        AppState.FORGOT_PASSWORD -> {
+                            SignupScreen(
+                                onSignupSuccess = { appState = AppState.LOGIN },
+                                onBackClick = { appState = AppState.LOGIN }
+                            )
+                        }
+                        AppState.DASHBOARD -> {
+                            DashboardScreen(
+                                onLogout = { appState = AppState.LOGIN }
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FinTrackProjectTheme {
-        Greeting("Android")
-    }
+enum class AppState {
+    SPLASH,
+    WELCOME,
+    LOGIN,
+    SIGNUP,
+    FORGOT_PASSWORD,
+    DASHBOARD
 }

@@ -46,6 +46,39 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    // Room Database
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    annotationProcessor(libs.androidx.room.compiler)
+
+    // Navigation Compose
+    implementation(libs.androidx.navigation.compose)
+
+
+    // Retrofit & OkHttp for API calls
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor)
+
+    // JSON Serialization
+    implementation(libs.gson)
+    implementation(libs.moshi)
+
+    // Charts for Statistics
+    implementation(libs.mpandroidchart)
+
+    // Kotlin Coroutines
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.core)
+
+    // DataStore for SharedPreferences replacement
+    implementation(libs.androidx.datastore.preferences)
+
+    // Timber for logging
+    implementation(libs.timber)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -1,3 +1,145 @@
 <resources>
-    <string name="app_name">FinTrackProject</string>
+    <string name="app_name">FinTrack</string>
+
+    <!-- Auth Screens -->
+    <string name="login">Đăng Nhập</string>
+    <string name="signup">Đăng Ký</string>
+    <string name="logout">Đăng Xuất</string>
+    <string name="username">Tên Đăng Nhập</string>
+    <string name="email">Email</string>
+    <string name="password">Mật Khẩu</string>
+    <string name="confirm_password">Xác Nhận Mật Khẩu</string>
+    <string name="phone_number">Số Điện Thoại</string>
+    <string name="forgot_password">Quên Mật Khẩu?</string>
+    <string name="have_account">Đã có tài khoản?</string>
+    <string name="no_account">Chưa có tài khoản?</string>
+    <string name="create_account">Tạo Tài Khoản Mới</string>
+    <string name="sign_in">Đăng Nhập</string>
+    <string name="sign_up">Đăng Ký</string>
+
+    <!-- Transaction Screens -->
+    <string name="transactions">Giao Dịch</string>
+    <string name="add_transaction">Thêm Giao Dịch</string>
+    <string name="edit_transaction">Chỉnh Sửa Giao Dịch</string>
+    <string name="delete_transaction">Xóa Giao Dịch</string>
+    <string name="transaction_detail">Chi Tiết Giao Dịch</string>
+    <string name="transaction_type">Loại Giao Dịch</string>
+    <string name="income">Thu Nhập</string>
+    <string name="expense">Chi Tiêu</string>
+    <string name="amount">Số Tiền</string>
+    <string name="category">Danh Mục</string>
+    <string name="description">Mô Tả</string>
+    <string name="transaction_date">Ngày Giao Dịch</string>
+    <string name="date">Ngày</string>
+    <string name="time">Thời Gian</string>
+    <string name="from">Từ</string>
+    <string name="to">Đến</string>
+    <string name="created_at">Tạo Lúc</string>
+    <string name="updated_at">Cập Nhật Lúc</string>
+
+    <!-- Category -->
+    <string name="categories">Danh Mục</string>
+    <string name="category_name">Tên Danh Mục</string>
+    <string name="add_category">Thêm Danh Mục</string>
+    <string name="edit_category">Chỉnh Sửa Danh Mục</string>
+    <string name="delete_category">Xóa Danh Mục</string>
+    <string name="food">Ăn Uống</string>
+    <string name="education">Giáo Dục</string>
+    <string name="health">Y Tế</string>
+    <string name="entertainment">Giải Trí</string>
+    <string name="transport">Giao Thông</string>
+    <string name="utilities">Tiện Ích</string>
+    <string name="shopping">Mua Sắm</string>
+    <string name="salary">Lương</string>
+    <string name="bonus">Thưởng</string>
+    <string name="business">Kinh Doanh</string>
+    <string name="investment">Đầu Tư</string>
+    <string name="other">Khác</string>
+
+    <!-- Statistics -->
+    <string name="statistics">Thống Kê</string>
+    <string name="overview">Tổng Quan</string>
+    <string name="total_income">Tổng Thu Nhập</string>
+    <string name="total_expense">Tổng Chi Tiêu</string>
+    <string name="balance">Số Dư</string>
+    <string name="chart_by_category">Biểu Đồ Theo Danh Mục</string>
+    <string name="chart_trend">Biểu Đồ Xu Hướng</string>
+    <string name="chart_compare">Biểu Đồ So Sánh</string>
+    <string name="week">Tuần</string>
+    <string name="month">Tháng</string>
+    <string name="year">Năm</string>
+    <string name="this_month">Tháng Này</string>
+    <string name="last_month">Tháng Trước</string>
+    <string name="this_year">Năm Này</string>
+    <string name="compare">So Sánh</string>
+
+    <!-- Budget -->
+    <string name="budget">Ngân Sách</string>
+    <string name="budgets">Ngân Sách</string>
+    <string name="set_budget">Thiết Lập Ngân Sách</string>
+    <string name="edit_budget">Chỉnh Sửa Ngân Sách</string>
+    <string name="delete_budget">Xóa Ngân Sách</string>
+    <string name="budget_limit">Giới Hạn Ngân Sách</string>
+    <string name="alert_threshold">Ngưỡng Cảnh Báo</string>
+    <string name="spent">Đã Chi</string>
+    <string name="remaining">Còn Lại</string>
+    <string name="exceeded">Vượt Quá</string>
+    <string name="budget_report">Báo Cáo Ngân Sách</string>
+    <string name="monthly_budget">Ngân Sách Tháng</string>
+    <string name="on_track">Đúng Kế Hoạch</string>
+    <string name="near_limit">Gần Vượt Quá</string>
+    <string name="over_budget">Vượt Quá Ngân Sách</string>
+
+    <!-- Common Actions -->
+    <string name="save">Lưu</string>
+    <string name="cancel">Hủy</string>
+    <string name="delete">Xóa</string>
+    <string name="edit">Chỉnh Sửa</string>
+    <string name="add">Thêm</string>
+    <string name="ok">Xác Nhận</string>
+    <string name="done">Hoàn Tất</string>
+    <string name="search">Tìm Kiếm</string>
+    <string name="filter">Lọc</string>
+    <string name="sort">Sắp Xếp</string>
+    <string name="ascending">Tăng Dần</string>
+    <string name="descending">Giảm Dần</string>
+    <string name="refresh">Làm Mới</string>
+    <string name="back">Quay Lại</string>
+    <string name="next">Tiếp Theo</string>
+    <string name="previous">Trước Đó</string>
+
+    <!-- Messages -->
+    <string name="loading">Đang Tải...</string>
+    <string name="error">Lỗi</string>
+    <string name="success">Thành Công</string>
+    <string name="warning">Cảnh Báo</string>
+    <string name="info">Thông Tin</string>
+    <string name="no_data">Không Có Dữ Liệu</string>
+    <string name="no_transactions">Không Có Giao Dịch</string>
+    <string name="no_budgets">Không Có Ngân Sách</string>
+    <string name="confirm_delete">Bạn Có Chắc Muốn Xóa?</string>
+    <string name="invalid_input">Dữ Liệu Nhập Không Hợp Lệ</string>
+    <string name="session_expired">Phiên Làm Việc Hết Hạn</string>
+    <string name="please_try_again">Vui Lòng Thử Lại</string>
+
+    <!-- Settings -->
+    <string name="settings">Cài Đặt</string>
+    <string name="profile">Hồ Sơ</string>
+    <string name="language">Ngôn Ngữ</string>
+    <string name="currency">Tiền Tệ</string>
+    <string name="theme">Chế Độ Xem</string>
+    <string name="light">Sáng</string>
+    <string name="dark">Tối</string>
+    <string name="about">Về Ứng Dụng</string>
+    <string name="version">Phiên Bản</string>
+
+    <!-- Import/Export -->
+    <string name="import_data">Nhập Dữ Liệu</string>
+    <string name="export_data">Xuất Dữ Liệu</string>
+    <string name="select_bank">Chọn Ngân Hàng</string>
+    <string name="connect">Kết Nối</string>
+    <string name="sync">Đồng Bộ</string>
+    <string name="import_preview">Xem Trước Nhập</string>
+    <string name="import_all">Nhập Tất Cả</string>
+    <string name="select_items">Chọn Mục</string>
 </resources>
