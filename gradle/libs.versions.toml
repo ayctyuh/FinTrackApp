@@ -8,7 +8,8 @@ lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.12.2"
 kotlin = "2.0.21"
 composeBom = "2024.09.00"
-room = "2.5.2"
+room = "2.7.0-alpha13"                   # ✅ Nâng từ 2.5.2 → 2.6.1
+ksp = "2.0.21-1.0.27"            # ✅ Thêm dòng này
 navigationCompose = "2.7.0"
 hilt = "2.51.1"
 hiltCompose = "1.2.0"
@@ -72,3 +73,4 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

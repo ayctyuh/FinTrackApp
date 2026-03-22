@@ -1,6 +1,6 @@
 package com.fintrack.project.ui.screens
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -21,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,6 +32,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fintrack.project.R
+import com.fintrack.project.data.database.FinTrackDatabase
+import com.fintrack.project.data.repository.AuthResult
+import com.fintrack.project.data.repository.UserRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 val Blue = Color(0xFF1D4ED8)
 val LightBlue = Color(0xFF3B6FEA)
@@ -44,11 +52,19 @@ fun LoginScreen(
     onSignupClick: () -> Unit = {},
     onForgotPasswordClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val repository = remember {
+        UserRepository(FinTrackDatabase.getInstance(context).userDao())
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(true) }
     var isLoading by remember { mutableStateOf(false) }
+    // ── Thêm state cho lỗi ────────────────────────────────
+    var showError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -63,7 +79,6 @@ fun LoginScreen(
                     )
                 )
         ) {
-            // Vòng tròn lớn - góc phải trên
             Box(
                 modifier = Modifier
                     .size(160.dp)
@@ -71,7 +86,6 @@ fun LoginScreen(
                     .offset(x = 40.dp, y = (-40).dp)
                     .background(Color.White.copy(alpha = 0.08f), CircleShape)
             )
-            // Vòng tròn nhỏ - góc phải giữa
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -79,25 +93,14 @@ fun LoginScreen(
                     .offset(x = (-30).dp, y = 20.dp)
                     .background(Color.White.copy(alpha = 0.08f), CircleShape)
             )
-
-            // Text chào mừng — padding top để xuống dưới status bar
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(start = 24.dp, bottom = 70.dp)
             ) {
-                Text(
-                    text = "Chào mừng!",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Text(text = "Chào mừng!", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Đăng nhập để tiếp tục",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
+                Text(text = "Đăng nhập để tiếp tục", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
             }
         }
 
@@ -117,48 +120,50 @@ fun LoginScreen(
                     .padding(horizontal = 24.dp, vertical = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                // Tiêu đề
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = "Đăng Nhập",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1A1F36)
-                        )
-                        Text(
-                            text = "Nhập thông tin tài khoản của bạn",
-                            fontSize = 12.sp,
-                            color = TextGray
-                        )
+                        Text(text = "Đăng Nhập", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1F36))
+                        Text(text = "Nhập thông tin tài khoản của bạn", fontSize = 12.sp, color = TextGray)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Banner lỗi (thêm mới, không đổi giao diện cũ) ──
+                AnimatedVisibility(
+                    visible = showError,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE4E4))
+                        ) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Error, null, tint = Color(0xFFDC2626), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(errorMessage, fontSize = 13.sp, color = Color(0xFF991B1B), fontWeight = FontWeight.Medium)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
 
                 // Username hoặc Email
                 Text(
                     text = "USERNAME HOẶC EMAIL",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextGray,
+                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextGray,
                     letterSpacing = 0.8.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                 )
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = { email = it; showError = false },
                     placeholder = { Text("example@email.com", color = TextGray) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = null, tint = TextGray, modifier = Modifier.size(20.dp))
-                    },
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = TextGray, modifier = Modifier.size(20.dp)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -176,28 +181,20 @@ fun LoginScreen(
                 // Mật khẩu
                 Text(
                     text = "MẬT KHẨU",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextGray,
+                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextGray,
                     letterSpacing = 0.8.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                 )
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { password = it; showError = false },
                     placeholder = { Text("••••••••", color = TextGray) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = TextGray, modifier = Modifier.size(20.dp))
-                    },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = TextGray, modifier = Modifier.size(20.dp)) },
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = null,
-                                tint = TextGray,
-                                modifier = Modifier.size(20.dp)
+                                if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                null, tint = TextGray, modifier = Modifier.size(20.dp)
                             )
                         }
                     },
@@ -233,26 +230,37 @@ fun LoginScreen(
                         Text("Ghi nhớ đăng nhập", fontSize = 13.sp, color = Color(0xFF1A1F36))
                     }
                     TextButton(onClick = onForgotPasswordClick) {
-                        Text(
-                            "Quên mật khẩu?",
-                            fontSize = 13.sp,
-                            color = Blue,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text("Quên mật khẩu?", fontSize = 13.sp, color = Blue, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Nút Đăng Nhập
+                // ── Nút Đăng Nhập — thêm logic DB ────────────
                 Button(
                     onClick = {
-                        isLoading = true
-                        onLoginSuccess()
+                        if (!isLoading) {
+                            isLoading = true
+                            showError = false
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val result = repository.login(
+                                    emailOrUsername = email,
+                                    password = password
+                                )
+                                withContext(Dispatchers.Main) {
+                                    isLoading = false
+                                    when (result) {
+                                        is AuthResult.Success -> onLoginSuccess()
+                                        is AuthResult.Error -> {
+                                            errorMessage = result.message
+                                            showError = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Blue),
                     enabled = !isLoading
@@ -266,11 +274,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Hoặc đăng nhập với
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     HorizontalDivider(modifier = Modifier.weight(1f), color = BorderColor)
                     Text("  hoặc đăng nhập với  ", fontSize = 12.sp, color = TextGray)
                     HorizontalDivider(modifier = Modifier.weight(1f), color = BorderColor)
@@ -278,12 +282,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Google + Facebook
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Google
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = {},
                         modifier = Modifier.weight(1f).height(48.dp),
@@ -291,17 +290,10 @@ fun LoginScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_google),
-                            contentDescription = "Google",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(painterResource(id = R.drawable.ic_google), "Google", tint = Color.Unspecified, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Google", fontSize = 14.sp, color = Color(0xFF1A1F36), fontWeight = FontWeight.Medium)
                     }
-
-                    // Facebook
                     OutlinedButton(
                         onClick = {},
                         modifier = Modifier.weight(1f).height(48.dp),
@@ -309,12 +301,7 @@ fun LoginScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_facebook),
-                            contentDescription = "Facebook",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(painterResource(id = R.drawable.ic_facebook), "Facebook", tint = Color.Unspecified, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Facebook", fontSize = 14.sp, color = Color(0xFF1A1F36), fontWeight = FontWeight.Medium)
                     }
@@ -322,20 +309,10 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Chưa có tài khoản
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Text("Chưa có tài khoản? ", fontSize = 14.sp, color = TextGray)
                     TextButton(onClick = onSignupClick, contentPadding = PaddingValues(0.dp)) {
-                        Text(
-                            "Đăng ký ngay",
-                            fontSize = 14.sp,
-                            color = Blue,
-                            fontWeight = FontWeight.Bold,
-                            textDecoration = TextDecoration.Underline
-                        )
+                        Text("Đăng ký ngay", fontSize = 14.sp, color = Blue, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)
                     }
                 }
             }

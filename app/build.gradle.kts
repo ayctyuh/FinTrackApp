@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp) // ✅ Thêm dòng này
 }
 
 android {
@@ -15,7 +16,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -47,36 +47,35 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // Room Database
+    // Room Database — ✅ Đổi annotationProcessor → ksp
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    annotationProcessor(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler) // ✅ Sửa dòng này
 
     // Navigation Compose
     implementation(libs.androidx.navigation.compose)
 
-
-    // Retrofit & OkHttp for API calls
+    // Retrofit & OkHttp
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
 
-    // JSON Serialization
+    // JSON
     implementation(libs.gson)
     implementation(libs.moshi)
 
-    // Charts for Statistics
+    // Charts
     implementation(libs.mpandroidchart)
 
-    // Kotlin Coroutines
+    // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.core)
 
-    // DataStore for SharedPreferences replacement
+    // DataStore
     implementation(libs.androidx.datastore.preferences)
 
-    // Timber for logging
+    // Timber
     implementation(libs.timber)
 
     implementation("androidx.compose.material:material-icons-extended")
