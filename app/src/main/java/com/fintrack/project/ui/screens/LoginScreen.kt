@@ -250,7 +250,26 @@ fun LoginScreen(
                                 withContext(Dispatchers.Main) {
                                     isLoading = false
                                     when (result) {
-                                        is AuthResult.Success -> onLoginSuccess()
+                                        // --- ĐOẠN ĐƯỢC THAY ĐỔI LÀ Ở ĐÂY ---
+                                        is AuthResult.Success -> {
+                                            CoroutineScope(Dispatchers.IO).launch {
+                                                // Tìm user trong DB bằng email hoặc username mà họ vừa nhập
+                                                val userDao = FinTrackDatabase.getInstance(context).userDao()
+                                                val user = userDao.getUserByEmail(email) ?: userDao.getUserByUsername(email)
+
+                                                user?.let {
+                                                    // Lưu ID của user vào SharedPreferences
+                                                    val prefs = context.getSharedPreferences("FinTrackPrefs", android.content.Context.MODE_PRIVATE)
+                                                    prefs.edit().putInt("LOGGED_IN_USER_ID", it.id).apply()
+                                                }
+
+                                                // Chuyển luồng về Main để thực hiện việc chuyển màn hình
+                                                withContext(Dispatchers.Main) {
+                                                    onLoginSuccess()
+                                                }
+                                            }
+                                        }
+                                        // -----------------------------------
                                         is AuthResult.Error -> {
                                             errorMessage = result.message
                                             showError = true

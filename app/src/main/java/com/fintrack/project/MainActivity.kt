@@ -1,5 +1,6 @@
 package com.fintrack.project
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -12,15 +13,21 @@ import androidx.compose.ui.Modifier
 import com.fintrack.project.ui.screens.DashboardScreen
 import com.fintrack.project.ui.screens.ForgotPasswordScreen
 import com.fintrack.project.ui.screens.LoginScreen
+import com.fintrack.project.ui.screens.OnboardingScreen // Đừng quên import màn hình mới
 import com.fintrack.project.ui.screens.SignupScreen
 import com.fintrack.project.ui.screens.SplashScreen
 import com.fintrack.project.ui.screens.WelcomeScreen
 import com.fintrack.project.ui.theme.FinTrackProjectTheme
+import com.fintrack.project.ui.screens.NotificationScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Khởi tạo SharedPreferences để lưu cờ kiểm tra lần đầu đăng nhập
+        val sharedPreferences = getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
+
         setContent {
             FinTrackProjectTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -38,7 +45,7 @@ class MainActivity : ComponentActivity() {
                     // Hàm quay lại
                     fun navigateBack() {
                         if (backStack.isNotEmpty()) {
-                            appState = backStack.removeLast()
+                            appState = backStack.removeAt(backStack.lastIndex) // <-- Đã sửa
                         }
                     }
 
@@ -67,12 +74,34 @@ class MainActivity : ComponentActivity() {
                         AppState.LOGIN -> {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    // Đăng nhập thành công → xóa stack, vào Dashboard
-                                    backStack.clear()
-                                    appState = AppState.DASHBOARD
+                                    backStack.clear() // Xóa lịch sử sau khi đăng nhập
+
+                                    // Kiểm tra xem user đã xem Onboarding chưa
+                                    val hasSeenOnboarding = sharedPreferences.getBoolean("HAS_SEEN_ONBOARDING", false)
+
+                                    if (!hasSeenOnboarding) {
+                                        appState = AppState.ONBOARDING
+                                    } else {
+                                        appState = AppState.DASHBOARD
+                                    }
                                 },
                                 onSignupClick = { navigateTo(AppState.SIGNUP) },
                                 onForgotPasswordClick = { navigateTo(AppState.FORGOT_PASSWORD) }
+                            )
+                        }
+                        // Thêm logic cho màn hình Onboarding
+                        AppState.ONBOARDING -> {
+                            OnboardingScreen(
+                                onNextClick = {
+                                    // Lưu lại cờ là đã xem Onboarding
+                                    sharedPreferences.edit().putBoolean("HAS_SEEN_ONBOARDING", true).apply()
+                                    backStack.clear()
+                                    appState = AppState.DASHBOARD
+                                },
+                                onBackClick = {
+                                    // Có thể cho họ quay lại Login nếu muốn
+                                    appState = AppState.LOGIN
+                                }
                             )
                         }
                         AppState.SIGNUP -> {
@@ -92,13 +121,20 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         AppState.DASHBOARD -> {
-                            // Không back khỏi Dashboard
                             BackHandler(enabled = true) { /* Chặn back */ }
                             DashboardScreen(
                                 onLogout = {
                                     backStack.clear()
                                     appState = AppState.LOGIN
+                                },
+                                onNotificationClick = { // Bấm cái chuông thì gọi lệnh này
+                                    navigateTo(AppState.NOTIFICATIONS)
                                 }
+                            )
+                        }
+                        AppState.NOTIFICATIONS -> {
+                            NotificationScreen(
+                                onBackClick = { navigateBack() }
                             )
                         }
                     }
@@ -108,11 +144,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// Cập nhật Enum để thêm ONBOARDING
 enum class AppState {
     SPLASH,
     WELCOME,
     LOGIN,
     SIGNUP,
     FORGOT_PASSWORD,
-    DASHBOARD
+    ONBOARDING, // <-- Thêm dòng này
+    DASHBOARD,
+
+    NOTIFICATIONS
 }

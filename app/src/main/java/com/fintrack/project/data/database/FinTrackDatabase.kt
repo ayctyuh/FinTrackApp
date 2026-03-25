@@ -6,10 +6,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.fintrack.project.data.dao.BudgetDao
 import com.fintrack.project.data.dao.CategoryDao
+import com.fintrack.project.data.dao.NotificationDao // <-- Thêm dòng này
 import com.fintrack.project.data.dao.TransactionDao
 import com.fintrack.project.data.dao.UserDao
 import com.fintrack.project.data.model.Budget
 import com.fintrack.project.data.model.Category
+import com.fintrack.project.data.model.Notification // <-- Thêm dòng này
 import com.fintrack.project.data.model.Transaction
 import com.fintrack.project.data.model.User
 
@@ -18,9 +20,10 @@ import com.fintrack.project.data.model.User
         User::class,
         Category::class,
         Transaction::class,
-        Budget::class
+        Budget::class,
+        Notification::class // <-- Thêm class này vào danh sách
     ],
-    version = 1,
+    version = 2, // <-- ĐỔI VERSION TỪ 1 LÊN 2
     exportSchema = false
 )
 abstract class FinTrackDatabase : RoomDatabase() {
@@ -28,6 +31,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun notificationDao(): NotificationDao // <-- Khai báo Dao mới
 
     companion object {
         @Volatile
@@ -40,7 +44,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
                     FinTrackDatabase::class.java,
                     "fintrack_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration() // Tùy chọn này sẽ xóa trắng dữ liệu cũ khi đổi version. Cẩn thận nếu đang có data quan trọng!
                     .build()
                 INSTANCE = instance
                 instance
@@ -48,4 +52,3 @@ abstract class FinTrackDatabase : RoomDatabase() {
         }
     }
 }
-
