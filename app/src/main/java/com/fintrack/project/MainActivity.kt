@@ -14,6 +14,7 @@ import com.fintrack.project.ui.screens.DashboardScreen
 import com.fintrack.project.ui.screens.ProfileScreen
 import com.fintrack.project.ui.screens.ForgotPasswordScreen
 import com.fintrack.project.ui.screens.EditProfileScreen
+import com.fintrack.project.ui.screens.AddTransactionScreen
 import com.fintrack.project.ui.screens.LoginScreen
 import com.fintrack.project.ui.screens.OnboardingScreen // Đừng quên import màn hình mới
 import com.fintrack.project.ui.screens.SignupScreen
@@ -139,7 +140,8 @@ class MainActivity : ComponentActivity() {
                             DashboardScreen(
                                 onNotificationClick = { navigateTo(AppState.NOTIFICATIONS) },
                                 onProfileClick = { navigateTo(AppState.PROFILE) }, // Thêm dòng này
-                                onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) }
+                                onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) },
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }
                             )
                         }
 
@@ -173,6 +175,12 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navigateBack() }
                             )
                         }
+                        AppState.ADD_TRANSACTION -> {
+                            AddTransactionScreen(
+                                onBackClick = { navigateBack() },
+                                onHomeClick = { navigateTo(AppState.DASHBOARD) }
+                            )
+                        }
                     }
                 }
             }
@@ -193,5 +201,6 @@ enum class AppState {
     NOTIFICATIONS,
     PROFILE,
     EDIT_PROFILE,
-    TRANSACTION_HISTORY
+    TRANSACTION_HISTORY,
+    ADD_TRANSACTION
 }

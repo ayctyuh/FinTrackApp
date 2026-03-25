@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fintrack.project.data.database.FinTrackDatabase
+import com.fintrack.project.data.model.Transaction
 import com.fintrack.project.data.model.TransactionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,7 +37,8 @@ fun DashboardScreen(
     onLogout: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
-    onSeeAllClick: () -> Unit = {}
+    onSeeAllClick: () -> Unit = {},
+    onAddClick: () -> Unit = {} // <-- 1. THÊM THAM SỐ NÀY ĐỂ NHẬN LỆNH CHUYỂN TRANG
 ) {
     val context = LocalContext.current
 
@@ -46,6 +48,8 @@ fun DashboardScreen(
     var monthlyExpense by remember { mutableDoubleStateOf(0.0) }
     var weeklyIncome by remember { mutableDoubleStateOf(0.0) }
     var weeklyExpense by remember { mutableDoubleStateOf(0.0) }
+    var recentTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
+    var unreadNotiCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -59,6 +63,34 @@ fun DashboardScreen(
 
                 val user = userDao.getUserById(loggedInUserId)
                 username = user?.username ?: "Người dùng mới"
+                // --- BẮT ĐẦU: TỰ ĐỘNG KHỞI TẠO DANH MỤC ---
+                val categoryDao = db.categoryDao()
+                val existingCategories = categoryDao.getUserCategories(loggedInUserId)
+
+                if (existingCategories.isEmpty()) {
+                    // Nạp danh mục chi tiêu
+                    com.fintrack.project.data.model.DEFAULT_EXPENSE_CATEGORIES.forEach { catName ->
+                        categoryDao.insertCategory(
+                            com.fintrack.project.data.model.Category(
+                                userId = loggedInUserId,
+                                name = catName,
+                                type = com.fintrack.project.data.model.CategoryType.EXPENSE,
+                                isDefault = true
+                            )
+                        )
+                    }
+                    // Nạp danh mục thu nhập
+                    com.fintrack.project.data.model.DEFAULT_INCOME_CATEGORIES.forEach { catName ->
+                        categoryDao.insertCategory(
+                            com.fintrack.project.data.model.Category(
+                                userId = loggedInUserId,
+                                name = catName,
+                                type = com.fintrack.project.data.model.CategoryType.INCOME,
+                                isDefault = true
+                            )
+                        )
+                    }
+                }
 
                 val calendar = Calendar.getInstance()
                 val monthStart = calendar.clone() as Calendar
@@ -96,6 +128,9 @@ fun DashboardScreen(
                 weeklyExpense = transactionDao.getTotalAmountByDateRange(
                     loggedInUserId, TransactionType.EXPENSE, weekStart.timeInMillis, weekEnd.timeInMillis
                 ) ?: 0.0
+
+                recentTransactions = transactionDao.getRecentTransactions(loggedInUserId)
+                unreadNotiCount = db.notificationDao().getUnreadCount(loggedInUserId)
             } else {
                 username = "Khách"
             }
@@ -104,8 +139,11 @@ fun DashboardScreen(
 
     Scaffold(
         bottomBar = {
-            // Đã sửa: Truyền tham số vào đây
-            BottomNavigationBar(onProfileClick = onProfileClick)
+            // <-- 2. TRUYỀN LỆNH XUỐNG BOTTOM BAR
+            BottomNavigationBar(
+                onProfileClick = onProfileClick,
+                onAddClick = onAddClick
+            )
         },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
@@ -133,7 +171,11 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 TimeFilterTabs()
                 Spacer(modifier = Modifier.height(24.dp))
-                RecentTransactionsEmptyState(onSeeAllClick = onSeeAllClick)
+                if (recentTransactions.isEmpty()) {
+                    RecentTransactionsEmptyState(onSeeAllClick = onSeeAllClick)
+                } else {
+                    RecentTransactionsList(transactions = recentTransactions, onSeeAllClick = onSeeAllClick)
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -141,7 +183,7 @@ fun DashboardScreen(
 }
 
 fun formatCurrency(amount: Double): String {
-    val format = NumberFormat.getCurrencyInstance(Locale.US)
+    val format = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
     return format.format(amount)
 }
 
@@ -257,7 +299,7 @@ fun TimeFilterTabs() {
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (isSelected) Color(0xFF2E5BFF) else Color.Transparent)
-                    .clickable { selectedTab = index } // <-- Đã thêm hiệu ứng bấm chọn Tab
+                    .clickable { selectedTab = index }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -273,7 +315,7 @@ fun TimeFilterTabs() {
 }
 
 @Composable
-fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) { // <-- Thêm tham số
+fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -288,7 +330,7 @@ fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) { // <-- Thêm 
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .clickable { onSeeAllClick() } // <-- Thêm hiệu ứng bấm chuyển trang
+                    .clickable { onSeeAllClick() }
                     .padding(4.dp)
             )
         }
@@ -309,8 +351,9 @@ fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) { // <-- Thêm 
     }
 }
 
+// <-- 3. THÊM THAM SỐ VÀO HÀM NÀY
 @Composable
-fun BottomNavigationBar(onProfileClick: () -> Unit) {
+fun BottomNavigationBar(onProfileClick: () -> Unit, onAddClick: () -> Unit = {}) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, null) },
@@ -328,7 +371,7 @@ fun BottomNavigationBar(onProfileClick: () -> Unit) {
             },
             label = { Text("Thêm", fontSize = 10.sp) },
             selected = false,
-            onClick = { }
+            onClick = onAddClick // <-- 4. GẮN LỆNH CLICK VÀO ĐÂY
         )
         NavigationBarItem(icon = { Icon(Icons.Default.PieChart, null) }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
         NavigationBarItem(
@@ -337,5 +380,41 @@ fun BottomNavigationBar(onProfileClick: () -> Unit) {
             selected = false,
             onClick = onProfileClick
         )
+    }
+}
+
+@Composable
+fun RecentTransactionsList(transactions: List<Transaction>, onSeeAllClick: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+            Text("Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium, modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onSeeAllClick() }.padding(4.dp))
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        transactions.forEach { txn ->
+            val isInc = txn.type == TransactionType.INCOME
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(48.dp).background(if (isInc) Color(0xFFD1FAE5) else Color(0xFFFEE2E2), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                        Icon(if (isInc) Icons.Default.TrendingUp else Icons.Default.Fastfood, null, tint = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444))
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        txn.description?.let { Text(it, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B)) }
+                        Text("Mã danh mục: ${txn.categoryId}", fontSize = 12.sp, color = Color(0xFF94A3B8)) // Tạm hiển thị ID
+                    }
+                    Text(
+                        text = (if (isInc) "+" else "-") + formatCurrency(txn.amount),
+                        color = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444),
+                        fontWeight = FontWeight.Bold, fontSize = 15.sp
+                    )
+                }
+            }
+        }
     }
 }

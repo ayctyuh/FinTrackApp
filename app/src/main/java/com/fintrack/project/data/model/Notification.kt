@@ -44,7 +44,8 @@ data class Notification(
     val isRead: Boolean = false, // Đã đọc chưa (để hiện dấu chấm đỏ)
     val transactionId: Int? = null, // Lưu ID giao dịch nếu có
     val budgetId: Int? = null, // Lưu ID ngân sách nếu có
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val message: String
 )
 
 // Enum phân loại thông báo

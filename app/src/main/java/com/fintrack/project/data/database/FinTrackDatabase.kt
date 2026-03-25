@@ -23,7 +23,7 @@ import com.fintrack.project.data.model.User
         Budget::class,
         Notification::class // <-- Thêm class này vào danh sách
     ],
-    version = 4, // <-- ĐỔI VERSION TỪ 1 LÊN 2
+    version = 6,
     exportSchema = false
 )
 abstract class FinTrackDatabase : RoomDatabase() {
