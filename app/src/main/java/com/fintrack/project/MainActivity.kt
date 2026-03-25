@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import com.fintrack.project.ui.screens.DashboardScreen
 import com.fintrack.project.ui.screens.ProfileScreen
 import com.fintrack.project.ui.screens.ForgotPasswordScreen
+import com.fintrack.project.ui.screens.EditProfileScreen
 import com.fintrack.project.ui.screens.LoginScreen
 import com.fintrack.project.ui.screens.OnboardingScreen // Đừng quên import màn hình mới
 import com.fintrack.project.ui.screens.SignupScreen
@@ -20,6 +21,7 @@ import com.fintrack.project.ui.screens.SplashScreen
 import com.fintrack.project.ui.screens.WelcomeScreen
 import com.fintrack.project.ui.theme.FinTrackProjectTheme
 import com.fintrack.project.ui.screens.NotificationScreen
+import com.fintrack.project.ui.screens.TransactionHistoryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,8 +79,14 @@ class MainActivity : ComponentActivity() {
                                 onLoginSuccess = {
                                     backStack.clear() // Xóa lịch sử sau khi đăng nhập
 
-                                    // Kiểm tra xem user đã xem Onboarding chưa
-                                    val hasSeenOnboarding = sharedPreferences.getBoolean("HAS_SEEN_ONBOARDING", false)
+                                    // Lấy ID của người dùng vừa đăng nhập thành công
+                                    val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+
+                                    // Tạo khóa riêng biệt cho từng người dùng (VD: HAS_SEEN_ONBOARDING_1)
+                                    val userOnboardingKey = "HAS_SEEN_ONBOARDING_$loggedInUserId"
+
+                                    // Kiểm tra xem người dùng NÀY đã xem Onboarding chưa
+                                    val hasSeenOnboarding = sharedPreferences.getBoolean(userOnboardingKey, false)
 
                                     if (!hasSeenOnboarding) {
                                         appState = AppState.ONBOARDING
@@ -90,17 +98,23 @@ class MainActivity : ComponentActivity() {
                                 onForgotPasswordClick = { navigateTo(AppState.FORGOT_PASSWORD) }
                             )
                         }
-                        // Thêm logic cho màn hình Onboarding
+
                         AppState.ONBOARDING -> {
                             OnboardingScreen(
                                 onNextClick = {
-                                    // Lưu lại cờ là đã xem Onboarding
-                                    sharedPreferences.edit().putBoolean("HAS_SEEN_ONBOARDING", true).apply()
+                                    // Lấy ID user hiện tại
+                                    val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+                                    val userOnboardingKey = "HAS_SEEN_ONBOARDING_$loggedInUserId"
+
+                                    // Lưu lại cờ là user này đã xem Onboarding
+                                    sharedPreferences.edit().putBoolean(userOnboardingKey, true).apply()
+
                                     backStack.clear()
                                     appState = AppState.DASHBOARD
                                 },
                                 onBackClick = {
-                                    // Có thể cho họ quay lại Login nếu muốn
+                                    // Nếu người dùng bấm Back ở màn Onboarding, ta cho họ đăng xuất luôn
+                                    sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
                                     appState = AppState.LOGIN
                                 }
                             )
@@ -124,24 +138,38 @@ class MainActivity : ComponentActivity() {
                         AppState.DASHBOARD -> {
                             DashboardScreen(
                                 onNotificationClick = { navigateTo(AppState.NOTIFICATIONS) },
-                                onProfileClick = { navigateTo(AppState.PROFILE) } // Thêm dòng này
+                                onProfileClick = { navigateTo(AppState.PROFILE) }, // Thêm dòng này
+                                onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) }
                             )
                         }
 
                         AppState.PROFILE -> {
                             ProfileScreen(
-                                onNavigateToEdit = { /* Chỗ này làm sau */ },
-                                onNavigateToSecurity = { /* Chỗ này làm sau */ },
+                                onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
+                                onNavigateToEdit = { navigateTo(AppState.EDIT_PROFILE) }, // Mở Edit Profile
+                                onNavigateToSecurity = { /* Lát làm Security */ },
                                 onLogout = {
-                                    // Xóa login session
+                                    val sharedPreferences = getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
                                     sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
                                     backStack.clear()
                                     appState = AppState.LOGIN
                                 }
                             )
                         }
+
+                        AppState.EDIT_PROFILE -> {
+                            EditProfileScreen(
+                                onBackClick = { navigateBack() }, // Quay lại Profile
+                                onHomeClick = { navigateTo(AppState.DASHBOARD) } // Bấm Trang chủ ở NavBar
+                            )
+                        }
                         AppState.NOTIFICATIONS -> {
                             NotificationScreen(
+                                onBackClick = { navigateBack() }
+                            )
+                        }
+                        AppState.TRANSACTION_HISTORY -> {
+                            TransactionHistoryScreen(
                                 onBackClick = { navigateBack() }
                             )
                         }
@@ -163,5 +191,7 @@ enum class AppState {
     DASHBOARD,
 
     NOTIFICATIONS,
-    PROFILE
+    PROFILE,
+    EDIT_PROFILE,
+    TRANSACTION_HISTORY
 }

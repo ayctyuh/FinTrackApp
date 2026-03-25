@@ -12,6 +12,10 @@ data class User(
     val phoneNumber: String? = null,
     val passwordHash: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val avatarUri: String? = null,
+    val dateOfBirth: String? = null,
+    val gender: String? = null,
+    val address: String? = null
 )
 

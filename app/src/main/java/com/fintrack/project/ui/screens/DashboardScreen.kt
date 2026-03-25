@@ -2,6 +2,7 @@ package com.fintrack.project.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -34,7 +35,8 @@ import java.util.Locale
 fun DashboardScreen(
     onLogout: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onSeeAllClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -131,7 +133,7 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 TimeFilterTabs()
                 Spacer(modifier = Modifier.height(24.dp))
-                RecentTransactionsEmptyState()
+                RecentTransactionsEmptyState(onSeeAllClick = onSeeAllClick)
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -238,29 +240,70 @@ fun SavingGoalCard(weeklyIncome: Double, weeklyExpense: Double) {
 
 @Composable
 fun TimeFilterTabs() {
-    var selectedTab by remember { mutableStateOf(2) }
-    Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE2E8F0), RoundedCornerShape(12.dp)).padding(4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        listOf("Ngày", "Tuần", "Tháng").forEachIndexed { index, title ->
+    var selectedTab by remember { mutableStateOf(2) } // 0: Ngày, 1: Tuần, 2: Tháng
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        val tabs = listOf("Ngày", "Tuần", "Tháng")
+        tabs.forEachIndexed { index, title ->
             val isSelected = selectedTab == index
-            Box(modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (isSelected) Color(0xFF2E5BFF) else Color.Transparent).padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                Text(text = title, color = if (isSelected) Color.White else Color(0xFF64748B), fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isSelected) Color(0xFF2E5BFF) else Color.Transparent)
+                    .clickable { selectedTab = index } // <-- Đã thêm hiệu ứng bấm chọn Tab
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    color = if (isSelected) Color.White else Color(0xFF64748B),
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
             }
         }
     }
 }
 
 @Composable
-fun RecentTransactionsEmptyState() {
+fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) { // <-- Thêm tham số
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-            Text("Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium)
+            Text(
+                text = "Xem tất cả →",
+                fontSize = 12.sp,
+                color = Color(0xFF3B82F6),
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { onSeeAllClick() } // <-- Thêm hiệu ứng bấm chuyển trang
+                    .padding(4.dp)
+            )
         }
+
         Spacer(modifier = Modifier.height(24.dp))
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+
+        // Giao diện trống (Empty State)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(64.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text("Chưa có giao dịch nào", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+            Spacer(modifier = Modifier.height(8.dp))
             Text("Hãy thêm khoản thu hoặc chi đầu tiên\nđể bắt đầu quản lý tài chính nhé!", fontSize = 14.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
         }
     }
