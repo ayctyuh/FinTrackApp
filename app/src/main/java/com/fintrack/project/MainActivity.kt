@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.fintrack.project.ui.screens.DashboardScreen
+import com.fintrack.project.ui.screens.ProfileScreen
 import com.fintrack.project.ui.screens.ForgotPasswordScreen
 import com.fintrack.project.ui.screens.LoginScreen
 import com.fintrack.project.ui.screens.OnboardingScreen // Đừng quên import màn hình mới
@@ -121,14 +122,21 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         AppState.DASHBOARD -> {
-                            BackHandler(enabled = true) { /* Chặn back */ }
                             DashboardScreen(
+                                onNotificationClick = { navigateTo(AppState.NOTIFICATIONS) },
+                                onProfileClick = { navigateTo(AppState.PROFILE) } // Thêm dòng này
+                            )
+                        }
+
+                        AppState.PROFILE -> {
+                            ProfileScreen(
+                                onNavigateToEdit = { /* Chỗ này làm sau */ },
+                                onNavigateToSecurity = { /* Chỗ này làm sau */ },
                                 onLogout = {
+                                    // Xóa login session
+                                    sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
                                     backStack.clear()
                                     appState = AppState.LOGIN
-                                },
-                                onNotificationClick = { // Bấm cái chuông thì gọi lệnh này
-                                    navigateTo(AppState.NOTIFICATIONS)
                                 }
                             )
                         }
@@ -154,5 +162,6 @@ enum class AppState {
     ONBOARDING, // <-- Thêm dòng này
     DASHBOARD,
 
-    NOTIFICATIONS
+    NOTIFICATIONS,
+    PROFILE
 }
