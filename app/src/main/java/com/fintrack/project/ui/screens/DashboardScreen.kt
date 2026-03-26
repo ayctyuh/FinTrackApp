@@ -48,7 +48,8 @@ fun DashboardScreen(
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSeeAllClick: () -> Unit = {},
-    onAddClick: () -> Unit = {}
+    onAddClick: () -> Unit = {},
+    onStatisticsClick: () -> Unit = {} // Thêm dòng này để xử lý nút Thống kê
 ) {
     val context = LocalContext.current
 
@@ -64,11 +65,11 @@ fun DashboardScreen(
     var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
 
     // Trạng thái Mục tiêu tiết kiệm
+    var userGoalKey by remember { mutableStateOf("") }
     var goalName by remember { mutableStateOf("") }
     var goalAmount by remember { mutableDoubleStateOf(0.0) }
     var goalIconStr by remember { mutableStateOf("Flag") }
     var showGoalDialog by remember { mutableStateOf(false) }
-    var userGoalKey by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -79,6 +80,9 @@ fun DashboardScreen(
             if (loggedInUserId != -1) {
                 val db = FinTrackDatabase.getInstance(context)
                 val userDao = db.userDao()
+                val transactionDao = db.transactionDao()
+                val categoryDao = db.categoryDao()
+
                 val user = userDao.getUserById(loggedInUserId)
                 username = user?.username ?: "Người dùng mới"
 
@@ -89,11 +93,6 @@ fun DashboardScreen(
                 goalName = sharedPreferences.getString("GOAL_NAME_$generatedKey", "") ?: ""
                 goalAmount = sharedPreferences.getFloat("GOAL_AMOUNT_$generatedKey", 0f).toDouble()
                 goalIconStr = sharedPreferences.getString("GOAL_ICON_$generatedKey", "Flag") ?: "Flag"
-
-                val transactionDao = db.transactionDao()
-                val categoryDao = db.categoryDao()
-
-                username = user?.username ?: "Người dùng mới"
 
                 val existingCategories = categoryDao.getUserCategories(loggedInUserId)
                 if (existingCategories.isEmpty()) {
@@ -117,18 +116,14 @@ fun DashboardScreen(
                 currentBalance = totalInc - totalExp
                 monthlyExpense = transactionDao.getTotalAmountByDateRange(loggedInUserId, TransactionType.EXPENSE, monthStart.timeInMillis, monthEnd.timeInMillis) ?: 0.0
 
-                // ---------------------------------------------------------------------
-                // TẠO NHẮC NHỞ ĐỊNH KỲ (1 NGÀY 1 LẦN) NẾU CÓ MỤC TIÊU
-                // ---------------------------------------------------------------------
                 if (goalAmount > 0) {
                     val lastReminderTime = sharedPreferences.getLong("LAST_GOAL_REMINDER_$loggedInUserId", 0L)
                     val currentTime = System.currentTimeMillis()
-                    val oneDayInMillis = 24 * 60 * 60 * 1000L // 24 giờ
+                    val oneDayInMillis = 24 * 60 * 60 * 1000L
 
                     if (currentTime - lastReminderTime > oneDayInMillis) {
                         val progress = (currentBalance / goalAmount * 100).toInt().coerceIn(0, 100)
 
-                        // Chỉ nhắc khi tiến độ chưa tới 100%
                         if (progress < 100) {
                             db.notificationDao().insertNotification(
                                 Notification(
@@ -136,17 +131,15 @@ fun DashboardScreen(
                                     title = "Nhắc nhở mục tiêu \uD83D\uDCAA",
                                     description = "Tiến độ hiện tại: $progress%",
                                     message = "Đừng quên bạn đang thực hiện mục tiêu '$goalName'. Hiện bạn đã đạt được $progress%. Tiếp tục duy trì thói quen ghi chép thu chi nhé!",
-                                    type = NotificationType.REMINDER, // Sẽ có icon chuông và màu xanh
+                                    type = NotificationType.REMINDER,
                                     createdAt = currentTime,
                                     isRead = false
                                 )
                             )
-                            // Lưu lại thời gian vừa nhắc để 24h sau mới nhắc tiếp
                             sharedPreferences.edit().putLong("LAST_GOAL_REMINDER_$loggedInUserId", currentTime).apply()
                         }
                     }
                 }
-                // ---------------------------------------------------------------------
 
                 recentTransactions = transactionDao.getRecentTransactions(loggedInUserId)
                 unreadNotiCount = db.notificationDao().getUnreadCount(loggedInUserId)
@@ -157,7 +150,15 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(onProfileClick = onProfileClick, onAddClick = onAddClick) },
+        bottomBar = {
+            ProfileBottomNavigationBar(
+                onHomeClick = {},
+                onAddClick = onAddClick,
+                onProfileClick = onProfileClick,
+                onStatisticsClick = onStatisticsClick, // Truyền hàm xử lý
+                currentScreen = "Trang chủ"
+            )
+        },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
@@ -206,7 +207,6 @@ fun DashboardScreen(
 
                     val prefs = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
                     prefs.edit()
-                        // ĐỔI LẠI THÀNH DÙNG userGoalKey
                         .putString("GOAL_NAME_$userGoalKey", name)
                         .putFloat("GOAL_AMOUNT_$userGoalKey", amount.toFloat())
                         .putString("GOAL_ICON_$userGoalKey", iconStr)
@@ -326,9 +326,6 @@ fun SavingGoalCard(goalName: String, goalAmount: Double, goalIconStr: String, cu
     }
 }
 
-// -------------------------------------------------------------------------
-// GIAO DIỆN FORM THIẾT LẬP MỤC TIÊU MỚI SIÊU ĐẸP
-// -------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalSetupDialog(
@@ -347,7 +344,7 @@ fun GoalSetupDialog(
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp), // Bo góc sâu hơn cho hiện đại
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(12.dp)
         ) {
@@ -355,7 +352,6 @@ fun GoalSetupDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Header Icon
                 Box(
                     modifier = Modifier.size(56.dp).background(Color(0xFFEFF6FF), CircleShape),
                     contentAlignment = Alignment.Center
@@ -369,7 +365,6 @@ fun GoalSetupDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Text field hiện đại
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -403,7 +398,6 @@ fun GoalSetupDialog(
                 Text("Chọn biểu tượng:", fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Nút chọn Icon
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     iconOptions.take(6).forEach { iconKey ->
                         val isSelected = selectedIcon == iconKey
@@ -427,7 +421,6 @@ fun GoalSetupDialog(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Nút bấm
                 Row(modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(
                         onClick = onDismiss,
@@ -497,13 +490,22 @@ fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) {
 }
 
 @Composable
-fun BottomNavigationBar(onProfileClick: () -> Unit, onAddClick: () -> Unit = {}) {
+fun ProfileBottomNavigationBar(
+    onHomeClick: () -> Unit = {},
+    onAddClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onStatisticsClick: () -> Unit = {}, // Thêm sự kiện onClick
+    currentScreen: String = "Cá nhân"
+) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        NavigationBarItem(icon = { Icon(Icons.Default.Home, null) }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = true, onClick = { }, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
-        NavigationBarItem(icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = false, onClick = { })
-        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, null, tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
-        NavigationBarItem(icon = { Icon(Icons.Default.PieChart, null) }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
-        NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = false, onClick = onProfileClick)
+        NavigationBarItem(icon = { Icon(Icons.Default.Home, "Trang chủ") }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = currentScreen == "Trang chủ", onClick = onHomeClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
+
+        // Gắn onStatisticsClick vào nút Thống kê
+        NavigationBarItem(icon = { Icon(Icons.Default.BarChart, "Thống kê") }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = currentScreen == "Thống kê", onClick = onStatisticsClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
+
+        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Thêm", tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
+        NavigationBarItem(icon = { Icon(Icons.Default.PieChart, "Ngân sách") }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
+        NavigationBarItem(icon = { Icon(Icons.Default.Person, "Cá nhân") }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = currentScreen == "Cá nhân", onClick = onProfileClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
     }
 }
 

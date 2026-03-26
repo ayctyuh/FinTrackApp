@@ -50,6 +50,7 @@ dependencies {
     // Room Database — ✅ Đổi annotationProcessor → ksp
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.compose.foundation)
     ksp(libs.androidx.room.compiler) // ✅ Sửa dòng này
 
     // Navigation Compose

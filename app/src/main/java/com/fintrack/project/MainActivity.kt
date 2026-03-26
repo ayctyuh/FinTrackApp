@@ -24,6 +24,7 @@ import com.fintrack.project.ui.theme.FinTrackProjectTheme
 import com.fintrack.project.ui.screens.NotificationScreen
 import com.fintrack.project.ui.screens.PinSetupScreen
 import com.fintrack.project.ui.screens.SecurityScreen
+import com.fintrack.project.ui.screens.StatisticsScreen
 import com.fintrack.project.ui.screens.TermsOfServiceScreen
 import com.fintrack.project.ui.screens.TransactionHistoryScreen
 
@@ -142,9 +143,10 @@ class MainActivity : ComponentActivity() {
                         AppState.DASHBOARD -> {
                             DashboardScreen(
                                 onNotificationClick = { navigateTo(AppState.NOTIFICATIONS) },
-                                onProfileClick = { navigateTo(AppState.PROFILE) }, // Thêm dòng này
+                                onProfileClick = { navigateTo(AppState.PROFILE) },
                                 onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) },
-                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
+                                onStatisticsClick = { navigateTo(AppState.STATISTICS) } // Khai báo hàm này để chuyển sang màn Thống kê
                             )
                         }
 
@@ -205,6 +207,13 @@ class MainActivity : ComponentActivity() {
                                 onPinSaved = { navigateBack() } // Lưu xong thì quay lại màn Security
                             )
                         }
+                        AppState.STATISTICS -> {
+                            StatisticsScreen(
+                                onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
+                                onNavigateToProfile = { navigateTo(AppState.PROFILE) },
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }
+                            )
+                        }
                     }
                 }
             }
@@ -216,5 +225,5 @@ class MainActivity : ComponentActivity() {
 enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
     NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE, // <-- THÊM TERMS
-    TRANSACTION_HISTORY, ADD_TRANSACTION
+    TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS
 }
