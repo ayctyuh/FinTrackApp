@@ -29,7 +29,7 @@ val DEFAULT_EXPENSE_CATEGORIES = listOf(
     "Y tế",
     "Giải trí",
     "Giao thông",
-    "Utilities",
+    "Nhà ở",
     "Mua sắm",
     "Khác"
 )

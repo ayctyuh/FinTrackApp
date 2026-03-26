@@ -16,6 +16,7 @@ data class User(
     val avatarUri: String? = null,
     val dateOfBirth: String? = null,
     val gender: String? = null,
-    val address: String? = null
+    val address: String? = null,
+    val pinCode: String? = null
 )
 

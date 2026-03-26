@@ -35,6 +35,7 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToEdit: () -> Unit,
     onNavigateToSecurity: () -> Unit,
+    onAddClick: () -> Unit, // Đã thêm tham số này
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
@@ -49,7 +50,8 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onNavigateToHome) },
+        // Truyền onAddClick xuống thanh Navbar
+        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onNavigateToHome, onAddClick = onAddClick) },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
@@ -73,24 +75,18 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // TIÊU ĐỀ (Cố định 40dp để đồng bộ với nút Back bên màn Edit)
                     Box(modifier = Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
                         Text("Cá nhân", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // AVATAR
                     Box(contentAlignment = Alignment.BottomEnd) {
                         Box(
                             modifier = Modifier.size(90.dp).clip(CircleShape).border(3.dp, Color.White, CircleShape).background(Color(0xFF2E5BFF)),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (user?.avatarUri.isNullOrEmpty()) {
-                                Icon(Icons.Outlined.Person, null, tint = Color.White, modifier = Modifier.size(48.dp))
-                            } else {
-                                Icon(Icons.Outlined.Person, null, tint = Color.White, modifier = Modifier.size(48.dp))
-                            }
+                            Icon(Icons.Outlined.Person, null, tint = Color.White, modifier = Modifier.size(48.dp))
                         }
                         Box(
                             modifier = Modifier.size(28.dp).offset(x = (-4).dp, y = (-4).dp).background(Color.White, CircleShape).padding(2.dp),
@@ -121,7 +117,7 @@ fun ProfileScreen(
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
                         ProfileMenuItemColor(Icons.Outlined.Category, Color(0xFFEF4444), "Danh mục", "Thêm danh mục chi tiêu") { }
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
-                        ProfileMenuItemColor(Icons.Outlined.Security, Color(0xFF10B981), "Bảo mật", "PIN, vân tay, điều khoản", onNavigateToSecurity)
+                        ProfileMenuItemColor(Icons.Outlined.Security, Color(0xFF10B981), "Bảo mật", "PIN, điều khoản", onNavigateToSecurity)
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
                         ProfileMenuItemColor(Icons.Outlined.Settings, Color(0xFFF59E0B), "Cài đặt", "Ngôn ngữ, thông báo, giao diện") { }
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
@@ -169,11 +165,14 @@ fun ProfileMenuItemColor(icon: ImageVector, iconBgColor: Color, title: String, s
 }
 
 @Composable
-fun ProfileBottomNavigationBar(onHomeClick: () -> Unit) {
+fun ProfileBottomNavigationBar(onHomeClick: () -> Unit, onAddClick: () -> Unit) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         NavigationBarItem(icon = { Icon(Icons.Default.Home, "Trang chủ") }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = false, onClick = onHomeClick)
         NavigationBarItem(icon = { Icon(Icons.Default.BarChart, "Thống kê") }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = false, onClick = { })
-        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Thêm", tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = { })
+
+        // Gắn sự kiện onClick vào nút Thêm
+        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Thêm", tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
+
         NavigationBarItem(icon = { Icon(Icons.Default.PieChart, "Ngân sách") }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
         NavigationBarItem(icon = { Icon(Icons.Default.Person, "Cá nhân") }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = true, onClick = { }, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
     }

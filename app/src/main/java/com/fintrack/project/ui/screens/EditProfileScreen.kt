@@ -34,7 +34,8 @@ import kotlinx.coroutines.withContext
 @Composable
 fun EditProfileScreen(
     onBackClick: () -> Unit,
-    onHomeClick: () -> Unit
+    onHomeClick: () -> Unit,
+    onAddClick: () -> Unit // <--- ĐÃ THÊM THAM SỐ NÀY
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -66,7 +67,8 @@ fun EditProfileScreen(
     }
 
     Scaffold(
-        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick) },
+        // ĐÃ TRUYỀN onAddClick VÀO NAVBAR BÊN DƯỚI
+        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick) },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->

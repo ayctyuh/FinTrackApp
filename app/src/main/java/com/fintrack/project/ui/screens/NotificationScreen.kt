@@ -2,6 +2,7 @@ package com.fintrack.project.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,31 +25,47 @@ import androidx.compose.ui.unit.sp
 import com.fintrack.project.data.database.FinTrackDatabase
 import com.fintrack.project.data.model.Notification
 import com.fintrack.project.data.model.NotificationType
+import com.fintrack.project.data.model.Transaction
+import com.fintrack.project.data.model.TransactionType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    // State chứa danh sách thông báo lấy từ DB
     var notifications by remember { mutableStateOf<List<Notification>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var currentUserId by remember { mutableIntStateOf(-1) }
 
-    // Gọi dữ liệu từ Database khi màn hình được tạo
+    // Popup state
+    var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
+    var categoriesMap by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var currentBalance by remember { mutableDoubleStateOf(0.0) }
+
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val sharedPreferences = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
-            val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+            currentUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
 
-            if (loggedInUserId != -1) {
-                val notificationDao = FinTrackDatabase.getInstance(context).notificationDao()
-                // Lấy danh sách thông báo từ DB, Room đã sắp xếp mới nhất lên đầu (ORDER BY createdAt DESC)
-                notifications = notificationDao.getUserNotifications(loggedInUserId)
+            if (currentUserId != -1) {
+                val db = FinTrackDatabase.getInstance(context)
+                notifications = db.notificationDao().getUserNotifications(currentUserId)
+
+                // Chuẩn bị dữ liệu cho Popup
+                categoriesMap = db.categoryDao().getUserCategories(currentUserId).associate { it.id to it.name }
+                val totalInc = db.transactionDao().getTotalAmount(currentUserId, TransactionType.INCOME) ?: 0.0
+                val totalExp = db.transactionDao().getTotalAmount(currentUserId, TransactionType.EXPENSE) ?: 0.0
+                currentBalance = totalInc - totalExp
+
+                // LƯU Ý: KHÔNG GỌI MARK ALL AS READ TỰ ĐỘNG NỮA
             }
             isLoading = false
         }
@@ -56,197 +73,137 @@ fun NotificationScreen(
 
     Scaffold(
         containerColor = Color(0xFFF8FAFC),
-        contentWindowInsets = WindowInsets(0.dp)
+        contentWindowInsets = WindowInsets(0.dp),
+        topBar = {
+            TopAppBar(
+                title = { Text("Thông báo", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) { Icon(Icons.Default.ChevronLeft, "Quay lại") }
+                },
+                // NÚT ĐÁNH DẤU ĐÃ ĐỌC
+                actions = {
+                    TextButton(onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            if (currentUserId != -1) {
+                                val db = FinTrackDatabase.getInstance(context)
+                                db.notificationDao().markAllAsRead(currentUserId)
+                                notifications = db.notificationDao().getUserNotifications(currentUserId) // Load lại danh sách
+                            }
+                        }
+                    }) {
+                        Text("Đánh dấu đã đọc", color = Color(0xFF2E5BFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = paddingValues.calculateBottomPadding())
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
-            // Phần Header màu xanh
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF2E5BFF))
-                    .padding(
-                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp,
-                        bottom = 16.dp, start = 16.dp, end = 16.dp
-                    )
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                    ) {
-                        Icon(Icons.Default.ChevronLeft, "Quay lại", tint = Color.White)
-                    }
-
-                    Text(
-                        text = "Thông báo",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f).offset(x = (-18).dp)
-                    )
-                }
-            }
-
             if (isLoading) {
-                // Hiển thị vòng tròn loading trong lúc chờ lấy dữ liệu
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF2E5BFF))
                 }
             } else if (notifications.isEmpty()) {
-                // TRẠNG THÁI TRỐNG (Khi chưa có thông báo)
                 Column(
                     modifier = Modifier.fillMaxSize().padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        Icons.Default.NotificationsOff,
-                        contentDescription = null,
-                        tint = Color(0xFFCBD5E1),
-                        modifier = Modifier.size(80.dp)
-                    )
+                    Icon(Icons.Default.NotificationsOff, null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(80.dp))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Chưa có thông báo nào",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF64748B)
-                    )
+                    Text("Chưa có thông báo nào", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Các nhắc nhở và cập nhật mới nhất sẽ được hiển thị tại đây.",
-                        fontSize = 14.sp,
-                        color = Color(0xFF94A3B8),
-                        textAlign = TextAlign.Center
-                    )
+                    Text("Các nhắc nhở và cập nhật mới nhất sẽ được hiển thị tại đây.", fontSize = 14.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
                 }
             } else {
-                // DANH SÁCH THÔNG BÁO TỪ DATABASE
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                    contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp)
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
                 ) {
-                    // Để đơn giản, hiện tại ta hiển thị danh sách thẳng.
-                    // Nếu bạn muốn chia nhóm theo ngày (Hôm nay, Hôm qua), cần thêm logic group by ngày ở ViewModel.
-
                     items(notifications) { notif ->
-                        // Xác định icon và màu sắc dựa trên NotificationType
-                        val iconData = getIconDataForType(notif.type)
+                        val isTransaction = notif.type == NotificationType.TRANSACTION
+                        val displayIcon = if (isTransaction) getIconForCategory(notif.title) else getIconDataForType(notif.type).icon
+                        val iconBgColor = if (isTransaction) Color(0xFFE0E7FF) else getIconDataForType(notif.type).bgColor
+                        val iconTintColor = if (isTransaction) Color(0xFF2E5BFF) else Color.White
 
-                        NotificationItem(
-                            icon = iconData.icon,
-                            iconBgColor = iconData.bgColor,
-                            title = notif.title,
-                            description = notif.description,
-                            time = formatDate(notif.createdAt),
-                            hasDot = !notif.isRead, // Nếu isRead = false thì hiện chấm đỏ
-                            isTransaction = notif.type == NotificationType.TRANSACTION // Nếu là transaction thì có thể hiện tag sau này
-                        )
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .clickable {
+                                    scope.launch(Dispatchers.IO) {
+                                        val db = FinTrackDatabase.getInstance(context)
+                                        // 1. Đánh dấu riêng thông báo này là đã đọc
+                                        db.notificationDao().markAsRead(notif.id)
+                                        notifications = db.notificationDao().getUserNotifications(currentUserId)
+
+                                        // 2. Tìm ID giao dịch và Show Popup
+                                        if (notif.transactionId != null) {
+                                            selectedTxn = db.transactionDao().getTransactionById(notif.transactionId)
+                                        }
+                                    }
+                                },
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(16.dp)) {
+                                Box(modifier = Modifier.size(40.dp).background(iconBgColor, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                                    Icon(displayIcon, contentDescription = null, tint = iconTintColor, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(notif.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("💰", fontSize = 14.sp)
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(notif.description, fontSize = 13.sp, color = Color(0xFF64748B), maxLines = 2)
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Schedule, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(formatDate(notif.createdAt), fontSize = 11.sp, color = Color(0xFF94A3B8))
+                                    }
+                                }
+                                if (!notif.isRead) {
+                                    Box(modifier = Modifier.size(8.dp).background(Color(0xFFF59E0B), CircleShape))
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+
+        // --- HIỂN THỊ POPUP NẾU TÌM THẤY GIAO DỊCH ---
+        selectedTxn?.let { txn ->
+            TransactionDetailDialog(
+                transaction = txn,
+                categoryName = categoriesMap[txn.categoryId] ?: "Khác",
+                currentBalance = currentBalance,
+                onDismiss = { selectedTxn = null } // Đóng popup
+            )
+        }
     }
 }
 
-// Data class nhỏ để gộp icon và màu sắc trả về
 data class NotificationIconData(val icon: ImageVector, val bgColor: Color)
 
-// Hàm xác định icon và màu tùy theo loại thông báo
 fun getIconDataForType(type: NotificationType): NotificationIconData {
     return when (type) {
-        NotificationType.REMINDER -> NotificationIconData(Icons.Default.Notifications, Color(0xFF2E5BFF)) // Xanh dương
-        NotificationType.UPDATE -> NotificationIconData(Icons.Default.Check, Color(0xFF10B981)) // Xanh lá
-        NotificationType.TRANSACTION -> NotificationIconData(Icons.Default.AttachMoney, Color(0xFF10B981)) // Xanh lá
-        NotificationType.BUDGET_ALERT -> NotificationIconData(Icons.Default.Warning, Color(0xFFEF4444)) // Đỏ
+        NotificationType.REMINDER -> NotificationIconData(Icons.Default.Notifications, Color(0xFF2E5BFF))
+        NotificationType.UPDATE -> NotificationIconData(Icons.Default.Check, Color(0xFF10B981))
+        NotificationType.TRANSACTION -> NotificationIconData(Icons.Default.AttachMoney, Color(0xFF10B981))
+        NotificationType.BUDGET_ALERT -> NotificationIconData(Icons.Default.Warning, Color(0xFFEF4444))
     }
 }
 
-// Hàm format thời gian (Long -> String: VD: 17:00 • 20 Tháng 6)
 fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm • dd 'Tháng' MM", Locale("vi", "VN"))
+    val sdf = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale("vi", "VN"))
     return sdf.format(Date(timestamp))
-}
-
-@Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF94A3B8),
-        modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
-    )
-}
-
-@Composable
-fun NotificationItem(
-    icon: ImageVector, iconBgColor: Color,
-    title: String, description: String, time: String,
-    hasDot: Boolean, isTransaction: Boolean = false
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(modifier = Modifier.padding(16.dp)) {
-            // Icon
-            Box(
-                modifier = Modifier.size(40.dp).background(iconBgColor, RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Text Content
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1E293B))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(description, fontSize = 12.sp, color = Color(0xFF64748B), maxLines = 2) // Cho description tối đa 2 dòng
-
-                if (isTransaction) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    // Tạm thời fix cứng TagItem, sau này bạn có thể query thêm Category để điền vào đây
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TagItem("Giao dịch", Color(0xFFE0E7FF), Color(0xFF2E5BFF))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(time, fontSize = 11.sp, color = Color(0xFF94A3B8))
-                }
-            }
-
-            // Dấu chấm đỏ/cam thông báo chưa đọc
-            if (hasDot) {
-                Box(modifier = Modifier.size(8.dp).background(Color(0xFFF59E0B), CircleShape))
-            }
-        }
-    }
-}
-
-@Composable
-fun TagItem(text: String, bgColor: Color, textColor: Color) {
-    Box(
-        modifier = Modifier.background(bgColor, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(text, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = textColor)
-    }
 }

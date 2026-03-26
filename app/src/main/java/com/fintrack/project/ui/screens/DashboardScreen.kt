@@ -2,11 +2,13 @@ package com.fintrack.project.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -18,116 +20,133 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.fintrack.project.data.database.FinTrackDatabase
+import com.fintrack.project.data.model.Notification
+import com.fintrack.project.data.model.NotificationType
 import com.fintrack.project.data.model.Transaction
 import com.fintrack.project.data.model.TransactionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onLogout: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSeeAllClick: () -> Unit = {},
-    onAddClick: () -> Unit = {} // <-- 1. THÊM THAM SỐ NÀY ĐỂ NHẬN LỆNH CHUYỂN TRANG
+    onAddClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
-    // States lưu trữ thông tin từ Database
     var username by remember { mutableStateOf("Đang tải...") }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
     var monthlyExpense by remember { mutableDoubleStateOf(0.0) }
-    var weeklyIncome by remember { mutableDoubleStateOf(0.0) }
-    var weeklyExpense by remember { mutableDoubleStateOf(0.0) }
     var recentTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
     var unreadNotiCount by remember { mutableIntStateOf(0) }
+    var categoriesMap by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var currentUserId by remember { mutableIntStateOf(-1) }
+
+    // Popup state
+    var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
+
+    // Trạng thái Mục tiêu tiết kiệm
+    var goalName by remember { mutableStateOf("") }
+    var goalAmount by remember { mutableDoubleStateOf(0.0) }
+    var goalIconStr by remember { mutableStateOf("Flag") }
+    var showGoalDialog by remember { mutableStateOf(false) }
+    var userGoalKey by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val sharedPreferences = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
             val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+            currentUserId = loggedInUserId
 
             if (loggedInUserId != -1) {
                 val db = FinTrackDatabase.getInstance(context)
                 val userDao = db.userDao()
-                val transactionDao = db.transactionDao()
-
                 val user = userDao.getUserById(loggedInUserId)
                 username = user?.username ?: "Người dùng mới"
-                // --- BẮT ĐẦU: TỰ ĐỘNG KHỞI TẠO DANH MỤC ---
-                val categoryDao = db.categoryDao()
-                val existingCategories = categoryDao.getUserCategories(loggedInUserId)
 
+                // TẠO KHÓA MỤC TIÊU ĐỘC NHẤT
+                val generatedKey = "${loggedInUserId}_${user?.username}"
+                userGoalKey = generatedKey
+
+                goalName = sharedPreferences.getString("GOAL_NAME_$generatedKey", "") ?: ""
+                goalAmount = sharedPreferences.getFloat("GOAL_AMOUNT_$generatedKey", 0f).toDouble()
+                goalIconStr = sharedPreferences.getString("GOAL_ICON_$generatedKey", "Flag") ?: "Flag"
+
+                val transactionDao = db.transactionDao()
+                val categoryDao = db.categoryDao()
+
+                username = user?.username ?: "Người dùng mới"
+
+                val existingCategories = categoryDao.getUserCategories(loggedInUserId)
                 if (existingCategories.isEmpty()) {
-                    // Nạp danh mục chi tiêu
                     com.fintrack.project.data.model.DEFAULT_EXPENSE_CATEGORIES.forEach { catName ->
-                        categoryDao.insertCategory(
-                            com.fintrack.project.data.model.Category(
-                                userId = loggedInUserId,
-                                name = catName,
-                                type = com.fintrack.project.data.model.CategoryType.EXPENSE,
-                                isDefault = true
-                            )
-                        )
+                        categoryDao.insertCategory(com.fintrack.project.data.model.Category(userId = loggedInUserId, name = catName, type = com.fintrack.project.data.model.CategoryType.EXPENSE, isDefault = true))
                     }
-                    // Nạp danh mục thu nhập
                     com.fintrack.project.data.model.DEFAULT_INCOME_CATEGORIES.forEach { catName ->
-                        categoryDao.insertCategory(
-                            com.fintrack.project.data.model.Category(
-                                userId = loggedInUserId,
-                                name = catName,
-                                type = com.fintrack.project.data.model.CategoryType.INCOME,
-                                isDefault = true
-                            )
-                        )
+                        categoryDao.insertCategory(com.fintrack.project.data.model.Category(userId = loggedInUserId, name = catName, type = com.fintrack.project.data.model.CategoryType.INCOME, isDefault = true))
                     }
                 }
+                categoriesMap = categoryDao.getUserCategories(loggedInUserId).associate { it.id to it.name }
 
                 val calendar = Calendar.getInstance()
                 val monthStart = calendar.clone() as Calendar
-                monthStart.set(Calendar.DAY_OF_MONTH, 1)
-                monthStart.set(Calendar.HOUR_OF_DAY, 0)
-                monthStart.set(Calendar.MINUTE, 0)
-                monthStart.set(Calendar.SECOND, 0)
-
+                monthStart.set(Calendar.DAY_OF_MONTH, 1); monthStart.set(Calendar.HOUR_OF_DAY, 0); monthStart.set(Calendar.MINUTE, 0); monthStart.set(Calendar.SECOND, 0)
                 val monthEnd = calendar.clone() as Calendar
-                monthEnd.add(Calendar.MONTH, 1)
-                monthEnd.set(Calendar.DAY_OF_MONTH, 1)
-                monthEnd.add(Calendar.MILLISECOND, -1)
-
-                val weekStart = calendar.clone() as Calendar
-                weekStart.firstDayOfWeek = Calendar.MONDAY
-                weekStart.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
-                weekStart.set(Calendar.HOUR_OF_DAY, 0)
-
-                val weekEnd = calendar.clone() as Calendar
-                weekEnd.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
-                weekEnd.set(Calendar.HOUR_OF_DAY, 23)
+                monthEnd.add(Calendar.MONTH, 1); monthEnd.set(Calendar.DAY_OF_MONTH, 1); monthEnd.add(Calendar.MILLISECOND, -1)
 
                 val totalInc = transactionDao.getTotalAmount(loggedInUserId, TransactionType.INCOME) ?: 0.0
                 val totalExp = transactionDao.getTotalAmount(loggedInUserId, TransactionType.EXPENSE) ?: 0.0
                 currentBalance = totalInc - totalExp
+                monthlyExpense = transactionDao.getTotalAmountByDateRange(loggedInUserId, TransactionType.EXPENSE, monthStart.timeInMillis, monthEnd.timeInMillis) ?: 0.0
 
-                monthlyExpense = transactionDao.getTotalAmountByDateRange(
-                    loggedInUserId, TransactionType.EXPENSE, monthStart.timeInMillis, monthEnd.timeInMillis
-                ) ?: 0.0
+                // ---------------------------------------------------------------------
+                // TẠO NHẮC NHỞ ĐỊNH KỲ (1 NGÀY 1 LẦN) NẾU CÓ MỤC TIÊU
+                // ---------------------------------------------------------------------
+                if (goalAmount > 0) {
+                    val lastReminderTime = sharedPreferences.getLong("LAST_GOAL_REMINDER_$loggedInUserId", 0L)
+                    val currentTime = System.currentTimeMillis()
+                    val oneDayInMillis = 24 * 60 * 60 * 1000L // 24 giờ
 
-                weeklyIncome = transactionDao.getTotalAmountByDateRange(
-                    loggedInUserId, TransactionType.INCOME, weekStart.timeInMillis, weekEnd.timeInMillis
-                ) ?: 0.0
+                    if (currentTime - lastReminderTime > oneDayInMillis) {
+                        val progress = (currentBalance / goalAmount * 100).toInt().coerceIn(0, 100)
 
-                weeklyExpense = transactionDao.getTotalAmountByDateRange(
-                    loggedInUserId, TransactionType.EXPENSE, weekStart.timeInMillis, weekEnd.timeInMillis
-                ) ?: 0.0
+                        // Chỉ nhắc khi tiến độ chưa tới 100%
+                        if (progress < 100) {
+                            db.notificationDao().insertNotification(
+                                Notification(
+                                    userId = loggedInUserId,
+                                    title = "Nhắc nhở mục tiêu \uD83D\uDCAA",
+                                    description = "Tiến độ hiện tại: $progress%",
+                                    message = "Đừng quên bạn đang thực hiện mục tiêu '$goalName'. Hiện bạn đã đạt được $progress%. Tiếp tục duy trì thói quen ghi chép thu chi nhé!",
+                                    type = NotificationType.REMINDER, // Sẽ có icon chuông và màu xanh
+                                    createdAt = currentTime,
+                                    isRead = false
+                                )
+                            )
+                            // Lưu lại thời gian vừa nhắc để 24h sau mới nhắc tiếp
+                            sharedPreferences.edit().putLong("LAST_GOAL_REMINDER_$loggedInUserId", currentTime).apply()
+                        }
+                    }
+                }
+                // ---------------------------------------------------------------------
 
                 recentTransactions = transactionDao.getRecentTransactions(loggedInUserId)
                 unreadNotiCount = db.notificationDao().getUnreadCount(loggedInUserId)
@@ -138,46 +157,72 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        bottomBar = {
-            // <-- 2. TRUYỀN LỆNH XUỐNG BOTTOM BAR
-            BottomNavigationBar(
-                onProfileClick = onProfileClick,
-                onAddClick = onAddClick
-            )
-        },
+        bottomBar = { BottomNavigationBar(onProfileClick = onProfileClick, onAddClick = onAddClick) },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = paddingValues.calculateBottomPadding())
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding()).verticalScroll(rememberScrollState())
         ) {
-            HeaderSection(
-                username = username,
-                balance = currentBalance,
-                monthlyExpense = monthlyExpense,
-                onNotificationClick = onNotificationClick
-            )
-
+            HeaderSection(username = username, balance = currentBalance, monthlyExpense = monthlyExpense, unreadNotiCount = unreadNotiCount, onNotificationClick = onNotificationClick)
             Spacer(modifier = Modifier.height(24.dp))
-
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+
                 SavingGoalCard(
-                    weeklyIncome = weeklyIncome,
-                    weeklyExpense = weeklyExpense
+                    goalName = goalName,
+                    goalAmount = goalAmount,
+                    goalIconStr = goalIconStr,
+                    currentBalance = currentBalance,
+                    onClick = { showGoalDialog = true }
                 )
+
                 Spacer(modifier = Modifier.height(24.dp))
                 TimeFilterTabs()
                 Spacer(modifier = Modifier.height(24.dp))
                 if (recentTransactions.isEmpty()) {
                     RecentTransactionsEmptyState(onSeeAllClick = onSeeAllClick)
                 } else {
-                    RecentTransactionsList(transactions = recentTransactions, onSeeAllClick = onSeeAllClick)
+                    RecentTransactionsList(
+                        transactions = recentTransactions,
+                        categoriesMap = categoriesMap,
+                        onSeeAllClick = onSeeAllClick,
+                        onTransactionClick = { txn -> selectedTxn = txn }
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        if (showGoalDialog) {
+            GoalSetupDialog(
+                currentName = goalName,
+                currentAmount = goalAmount,
+                currentIcon = goalIconStr,
+                onDismiss = { showGoalDialog = false },
+                onSave = { name, amount, iconStr ->
+                    goalName = name
+                    goalAmount = amount
+                    goalIconStr = iconStr
+
+                    val prefs = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
+                    prefs.edit()
+                        // ĐỔI LẠI THÀNH DÙNG userGoalKey
+                        .putString("GOAL_NAME_$userGoalKey", name)
+                        .putFloat("GOAL_AMOUNT_$userGoalKey", amount.toFloat())
+                        .putString("GOAL_ICON_$userGoalKey", iconStr)
+                        .apply()
+                    showGoalDialog = false
+                }
+            )
+        }
+
+        selectedTxn?.let { txn ->
+            TransactionDetailDialog(
+                transaction = txn,
+                categoryName = categoriesMap[txn.categoryId] ?: "Khác",
+                currentBalance = currentBalance,
+                onDismiss = { selectedTxn = null }
+            )
         }
     }
 }
@@ -187,49 +232,30 @@ fun formatCurrency(amount: Double): String {
     return format.format(amount)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, onNotificationClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
-            .background(Brush.verticalGradient(colors = listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
-    ) {
+fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unreadNotiCount: Int, onNotificationClick: () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).background(Brush.verticalGradient(colors = listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))) {
         Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
         Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
-
-        Column(
-            modifier = Modifier.padding(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp,
-                bottom = 32.dp, start = 24.dp, end = 24.dp
-            )
-        ) {
+        Column(modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp, start = 24.dp, end = 24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text(text = "Xin chào \uD83D\uDC4B", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-                    Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                }
+                Column { Text(text = "Xin chào \uD83D\uDC4B", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp); Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
                 IconButton(onClick = onNotificationClick, modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
-                    Icon(Icons.Outlined.Notifications, contentDescription = "Thông báo", tint = Color.White)
+                    BadgedBox(badge = { if (unreadNotiCount > 0) { Badge(containerColor = Color.Red, modifier = Modifier.size(10.dp).offset(x = (-4).dp, y = 4.dp)) } }) {
+                        Icon(Icons.Outlined.Notifications, contentDescription = "Thông báo", tint = Color.White)
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp)).padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Số dư hiện tại", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Số dư hiện tại", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp) }
                     Text(formatCurrency(balance), color = Color(0xFF4ADE80), fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.White.copy(alpha = 0.3f)))
                 Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MoneyOff, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Chi tiêu tháng", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.MoneyOff, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Chi tiêu tháng", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp) }
                     Text(formatCurrency(monthlyExpense), color = Color(0xFFF87171), fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
             }
@@ -238,41 +264,61 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, onN
 }
 
 @Composable
-fun SavingGoalCard(weeklyIncome: Double, weeklyExpense: Double) {
-    val isNewUser = weeklyIncome == 0.0 && weeklyExpense == 0.0
-    val goalName = if (isNewUser) "Chưa thiết lập" else "Xe hơi"
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFF2548C6))) {
+fun SavingGoalCard(goalName: String, goalAmount: Double, goalIconStr: String, currentBalance: Double, onClick: () -> Unit) {
+    val isConfigured = goalAmount > 0
+    val displayName = if (isConfigured) goalName.ifEmpty { "Chưa đặt tên" } else "Bấm để thiết lập"
+    val displayIcon = getIconForGoal(if (isConfigured) goalIconStr else "Flag")
+
+    val progress = if (isConfigured) (currentBalance / goalAmount).coerceIn(0.0, 1.0).toFloat() else 0f
+    val remaining = if (isConfigured) maxOf(0.0, goalAmount - currentBalance) else 0.0
+
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFF2548C6)).clickable { onClick() }) {
         Box(modifier = Modifier.size(120.dp).align(Alignment.TopEnd).offset(x = 30.dp, y = (-30).dp).background(Color.White.copy(alpha = 0.05f), CircleShape))
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
+
+            Column(modifier = Modifier.weight(1.2f)) {
                 Box(modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                    Icon(if (isNewUser) Icons.Default.Flag else Icons.Default.Schedule, contentDescription = null, tint = Color.White)
+                    Icon(displayIcon, null, tint = Color.White)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("MỤC TIÊU TIẾT KIỆM", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text(goalName, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("MỤC TIÊU CỦA BẠN", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(displayName, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            Column(modifier = Modifier.weight(1f)) {
+
+            Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFF4ADE80),
+                    trackColor = Color.White.copy(alpha = 0.2f),
+                    strokeWidth = 6.dp
+                )
+                Text(
+                    text = "${(progress * 100).toInt()}%",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1.3f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(24.dp).background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.AttachMoney, null, tint = Color.White, modifier = Modifier.size(14.dp))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(8.dp).background(Color(0xFF4ADE80), CircleShape))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Column {
-                        Text("Thu tuần này", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
-                        Text(formatCurrency(weeklyIncome), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Cần tiết kiệm", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                        Text(if(isConfigured) formatCurrency(goalAmount) else "0 đ", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(24.dp).background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.CalendarToday, null, tint = Color.White, modifier = Modifier.size(12.dp))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.size(8.dp).background(Color(0xFFF87171), CircleShape))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Column {
-                        Text("Chi tuần này", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
-                        val expenseText = if (weeklyExpense > 0) "-${formatCurrency(weeklyExpense)}" else formatCurrency(0.0)
-                        Text(expenseText, color = Color(0xFFF87171), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("Còn thiếu", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                        Text(if(isConfigured) formatCurrency(remaining) else "0 đ", color = Color(0xFFF87171), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -280,35 +326,158 @@ fun SavingGoalCard(weeklyIncome: Double, weeklyExpense: Double) {
     }
 }
 
+// -------------------------------------------------------------------------
+// GIAO DIỆN FORM THIẾT LẬP MỤC TIÊU MỚI SIÊU ĐẸP
+// -------------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoalSetupDialog(
+    currentName: String,
+    currentAmount: Double,
+    currentIcon: String,
+    onDismiss: () -> Unit,
+    onSave: (String, Double, String) -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+    var amountText by remember { mutableStateOf(if (currentAmount > 0) currentAmount.toLong().toString() else "") }
+    var selectedIcon by remember { mutableStateOf(currentIcon.ifEmpty { "Flag" }) }
+
+    val iconOptions = listOf("Flag", "Car", "Home", "Flight", "Laptop", "School", "Favorite")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp), // Bo góc sâu hơn cho hiện đại
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header Icon
+                Box(
+                    modifier = Modifier.size(56.dp).background(Color(0xFFEFF6FF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(getIconForGoal(selectedIcon), null, tint = Color(0xFF2E5BFF), modifier = Modifier.size(28.dp))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Thiết lập Mục tiêu", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                Text("Cùng nhau chinh phục cột mốc mới!", fontSize = 13.sp, color = Color.Gray, textAlign = TextAlign.Center)
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Text field hiện đại
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Tên mục tiêu (VD: Đóng học phí)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF2E5BFF),
+                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it },
+                    label = { Text("Số tiền cần tiết kiệm (đ)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF2E5BFF),
+                        unfocusedBorderColor = Color(0xFFE2E8F0)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+                Text("Chọn biểu tượng:", fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Nút chọn Icon
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    iconOptions.take(6).forEach { iconKey ->
+                        val isSelected = selectedIcon == iconKey
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) Color(0xFF2E5BFF) else Color(0xFFF1F5F9))
+                                .clickable { selectedIcon = iconKey },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                getIconForGoal(iconKey),
+                                contentDescription = null,
+                                tint = if (isSelected) Color.White else Color(0xFF64748B),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Nút bấm
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Text("Hủy", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Button(
+                        onClick = {
+                            val amount = amountText.toDoubleOrNull() ?: 0.0
+                            if (name.isNotBlank() && amount > 0) {
+                                onSave(name, amount, selectedIcon)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF))
+                    ) {
+                        Text("Lưu lại", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun getIconForGoal(name: String): ImageVector {
+    return when (name) {
+        "Car" -> Icons.Default.DirectionsCar
+        "Home" -> Icons.Default.Home
+        "Flight" -> Icons.Default.Flight
+        "Laptop" -> Icons.Default.Laptop
+        "School" -> Icons.Default.School
+        "Favorite" -> Icons.Default.Favorite
+        else -> Icons.Default.Flag
+    }
+}
+
 @Composable
 fun TimeFilterTabs() {
-    var selectedTab by remember { mutableStateOf(2) } // 0: Ngày, 1: Tuần, 2: Tháng
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        val tabs = listOf("Ngày", "Tuần", "Tháng")
-        tabs.forEachIndexed { index, title ->
+    var selectedTab by remember { mutableStateOf(2) }
+    Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE2E8F0), RoundedCornerShape(12.dp)).padding(4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        listOf("Ngày", "Tuần", "Tháng").forEachIndexed { index, title ->
             val isSelected = selectedTab == index
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) Color(0xFF2E5BFF) else Color.Transparent)
-                    .clickable { selectedTab = index }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = title,
-                    color = if (isSelected) Color.White else Color(0xFF64748B),
-                    fontSize = 14.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
+            Box(modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (isSelected) Color(0xFF2E5BFF) else Color.Transparent).clickable { selectedTab = index }.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                Text(text = title, color = if (isSelected) Color.White else Color(0xFF64748B), fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
             }
         }
     }
@@ -317,102 +486,82 @@ fun TimeFilterTabs() {
 @Composable
 fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-            Text(
-                text = "Xem tất cả →",
-                fontSize = 12.sp,
-                color = Color(0xFF3B82F6),
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable { onSeeAllClick() }
-                    .padding(4.dp)
-            )
-        }
-
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)); Text(text = "Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium, modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onSeeAllClick() }.padding(4.dp)) }
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Giao diện trống (Empty State)
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(64.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Chưa có giao dịch nào", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Hãy thêm khoản thu hoặc chi đầu tiên\nđể bắt đầu quản lý tài chính nhé!", fontSize = 14.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(16.dp)); Text("Chưa có giao dịch nào", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+            Spacer(modifier = Modifier.height(8.dp)); Text("Hãy thêm khoản thu hoặc chi đầu tiên\nđể bắt đầu quản lý tài chính nhé!", fontSize = 14.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)
         }
     }
 }
 
-// <-- 3. THÊM THAM SỐ VÀO HÀM NÀY
 @Composable
 fun BottomNavigationBar(onProfileClick: () -> Unit, onAddClick: () -> Unit = {}) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, null) },
-            label = { Text("Trang chủ", fontSize = 10.sp) },
-            selected = true,
-            onClick = { },
-            colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF))
-        )
+        NavigationBarItem(icon = { Icon(Icons.Default.Home, null) }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = true, onClick = { }, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
         NavigationBarItem(icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = false, onClick = { })
-        NavigationBarItem(
-            icon = {
-                Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Add, null, tint = Color.White)
-                }
-            },
-            label = { Text("Thêm", fontSize = 10.sp) },
-            selected = false,
-            onClick = onAddClick // <-- 4. GẮN LỆNH CLICK VÀO ĐÂY
-        )
+        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, null, tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
         NavigationBarItem(icon = { Icon(Icons.Default.PieChart, null) }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Person, null) },
-            label = { Text("Cá nhân", fontSize = 10.sp) },
-            selected = false,
-            onClick = onProfileClick
-        )
+        NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = false, onClick = onProfileClick)
     }
 }
 
 @Composable
-fun RecentTransactionsList(transactions: List<Transaction>, onSeeAllClick: () -> Unit) {
+fun RecentTransactionsList(transactions: List<Transaction>, categoriesMap: Map<Int, String>, onSeeAllClick: () -> Unit, onTransactionClick: (Transaction) -> Unit) {
+    val timeFormatter = SimpleDateFormat("HH:mm - dd/MM", Locale("vi", "VN"))
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-            Text("Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium, modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onSeeAllClick() }.padding(4.dp))
-        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)); Text("Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium, modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onSeeAllClick() }.padding(4.dp)) }
         Spacer(modifier = Modifier.height(16.dp))
-
         transactions.forEach { txn ->
             val isInc = txn.type == TransactionType.INCOME
+            val categoryName = categoriesMap[txn.categoryId] ?: "Khác"
+            val displayIcon = getIconForCategory(categoryName)
+            val displayDescription = if (!txn.description.isNullOrEmpty()) txn.description else categoryName
+
             Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    .clickable { onTransactionClick(txn) },
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(48.dp).background(if (isInc) Color(0xFFD1FAE5) else Color(0xFFFEE2E2), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                        Icon(if (isInc) Icons.Default.TrendingUp else Icons.Default.Fastfood, null, tint = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444))
-                    }
+                    Box(modifier = Modifier.size(48.dp).background(if (isInc) Color(0xFFD1FAE5) else Color(0xFFFEE2E2), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) { Icon(displayIcon, null, tint = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444)) }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        txn.description?.let { Text(it, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B)) }
-                        Text("Mã danh mục: ${txn.categoryId}", fontSize = 12.sp, color = Color(0xFF94A3B8)) // Tạm hiển thị ID
+                        Text(displayDescription, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B))
+                        Text(timeFormatter.format(Date(txn.transactionDate)), fontSize = 12.sp, color = Color(0xFF94A3B8))
                     }
-                    Text(
-                        text = (if (isInc) "+" else "-") + formatCurrency(txn.amount),
-                        color = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444),
-                        fontWeight = FontWeight.Bold, fontSize = 15.sp
-                    )
+                    Text(text = (if (isInc) "+" else "-") + formatCurrency(txn.amount), color = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TransactionDetailDialog(transaction: Transaction, categoryName: String, currentBalance: Double, onDismiss: () -> Unit) {
+    val isInc = transaction.type == TransactionType.INCOME
+    val formatter = SimpleDateFormat("dd 'Tháng' MM, yyyy", Locale("vi", "VN"))
+    val mainColor = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(8.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("CHI TIẾT GIAO DỊCH", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("#TXN-${transaction.id.toString().padStart(5, '0')}", color = Color.Gray, fontSize = 10.sp)
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                DetailRow("Số tiền", (if (isInc) "+" else "-") + formatCurrency(transaction.amount), mainColor, true)
+                DetailRow("Danh mục", categoryName, Color.Black)
+                DetailRow("Ngày giao dịch", formatter.format(Date(transaction.transactionDate)), Color.Black)
+                DetailRow("Mô tả", transaction.description ?: categoryName, Color.Black)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Color(0xFFF1F5F9))
+                DetailRow("Số dư hiện tại", formatCurrency(currentBalance), Color(0xFF2E5BFF), true)
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF)), shape = RoundedCornerShape(12.dp)) {
+                    Text("Đóng", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }

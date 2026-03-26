@@ -22,6 +22,9 @@ import com.fintrack.project.ui.screens.SplashScreen
 import com.fintrack.project.ui.screens.WelcomeScreen
 import com.fintrack.project.ui.theme.FinTrackProjectTheme
 import com.fintrack.project.ui.screens.NotificationScreen
+import com.fintrack.project.ui.screens.PinSetupScreen
+import com.fintrack.project.ui.screens.SecurityScreen
+import com.fintrack.project.ui.screens.TermsOfServiceScreen
 import com.fintrack.project.ui.screens.TransactionHistoryScreen
 
 class MainActivity : ComponentActivity() {
@@ -148,8 +151,9 @@ class MainActivity : ComponentActivity() {
                         AppState.PROFILE -> {
                             ProfileScreen(
                                 onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
-                                onNavigateToEdit = { navigateTo(AppState.EDIT_PROFILE) }, // Mở Edit Profile
-                                onNavigateToSecurity = { /* Lát làm Security */ },
+                                onNavigateToEdit = { navigateTo(AppState.EDIT_PROFILE) },
+                                onNavigateToSecurity = { navigateTo(AppState.SECURITY) },
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, // <--- BẠN THÊM DÒNG NÀY VÀO ĐÂY NHÉ
                                 onLogout = {
                                     val sharedPreferences = getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
                                     sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
@@ -161,8 +165,9 @@ class MainActivity : ComponentActivity() {
 
                         AppState.EDIT_PROFILE -> {
                             EditProfileScreen(
-                                onBackClick = { navigateBack() }, // Quay lại Profile
-                                onHomeClick = { navigateTo(AppState.DASHBOARD) } // Bấm Trang chủ ở NavBar
+                                onBackClick = { navigateBack() },
+                                onHomeClick = { navigateTo(AppState.DASHBOARD) },
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) } // Phải có dòng này!
                             )
                         }
                         AppState.NOTIFICATIONS -> {
@@ -181,6 +186,25 @@ class MainActivity : ComponentActivity() {
                                 onHomeClick = { navigateTo(AppState.DASHBOARD) }
                             )
                         }
+                        AppState.SECURITY -> {
+                            SecurityScreen(
+                                onBackClick = { navigateBack() },
+                                onHomeClick = { navigateTo(AppState.DASHBOARD) },
+                                onNavigateToPinSetup = { navigateTo(AppState.PIN_SETUP) },
+                                onNavigateToTerms = { navigateTo(AppState.TERMS_OF_SERVICE) }, // <-- THÊM
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }
+                            )
+                        }
+                        AppState.TERMS_OF_SERVICE -> {
+                            TermsOfServiceScreen(onBackClick = { navigateBack() })
+                        }
+
+                        AppState.PIN_SETUP -> {
+                            PinSetupScreen(
+                                onBackClick = { navigateBack() },
+                                onPinSaved = { navigateBack() } // Lưu xong thì quay lại màn Security
+                            )
+                        }
                     }
                 }
             }
@@ -190,17 +214,7 @@ class MainActivity : ComponentActivity() {
 
 // Cập nhật Enum để thêm ONBOARDING
 enum class AppState {
-    SPLASH,
-    WELCOME,
-    LOGIN,
-    SIGNUP,
-    FORGOT_PASSWORD,
-    ONBOARDING, // <-- Thêm dòng này
-    DASHBOARD,
-
-    NOTIFICATIONS,
-    PROFILE,
-    EDIT_PROFILE,
-    TRANSACTION_HISTORY,
-    ADD_TRANSACTION
+    SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
+    NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE, // <-- THÊM TERMS
+    TRANSACTION_HISTORY, ADD_TRANSACTION
 }
