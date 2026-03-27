@@ -21,16 +21,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fintrack.project.data.database.FinTrackDatabase
-import com.fintrack.project.data.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SecurityScreen(
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
-    onNavigateToPinSetup: () -> Unit, // Điều hướng sang màn hình nhập PIN
+    onNavigateToPinSetup: () -> Unit,
     onNavigateToTerms: () -> Unit,
     onAddClick: () -> Unit
 ) {
@@ -42,8 +40,6 @@ fun SecurityScreen(
             val sharedPreferences = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
             val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
             val user = FinTrackDatabase.getInstance(context).userDao().getUserById(userId)
-
-            // Kiểm tra xem User đã có mã PIN chưa
             hasPin = !user?.pinCode.isNullOrEmpty()
         }
     }
@@ -56,36 +52,43 @@ fun SecurityScreen(
         Column(
             modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding())
         ) {
+            // --- HEADER XANH ĐỒNG BỘ ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
                     .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
             ) {
-                Box(modifier = Modifier.fillMaxWidth().height(80.dp).padding(top = 40.dp), contentAlignment = Alignment.Center) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
-                    ) {
-                        Icon(Icons.Default.ChevronLeft, "Quay lại", tint = Color.White)
+                Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
+                Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
+                        ) {
+                            Icon(Icons.Default.ChevronLeft, "Quay lại", tint = Color.White)
+                        }
+                        Text("Bảo mật", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
-                    Text("Bảo mật", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp, start = 20.dp, end = 20.dp)) {
+            Column(modifier = Modifier.fillMaxSize().padding(top = 32.dp, start = 24.dp, end = 24.dp)) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("BẢO MẬT", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("CÀI ĐẶT BẢO MẬT", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Nút Đổi/Tạo PIN
                         Row(
                             modifier = Modifier.fillMaxWidth().clickable { onNavigateToPinSetup() }.padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,

@@ -105,7 +105,7 @@ fun StatisticsScreen(
                 endTime = cal.timeInMillis
 
                 val sdf = SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN"))
-                dateLabel = "Tuần này: ${sdf.format(Date(startTime))} - ${sdf.format(Date(endTime))}"
+                dateLabel = "${sdf.format(Date(startTime))} - ${sdf.format(Date(endTime))}"
             }
             TimeFilter.MONTH -> {
                 cal.set(Calendar.DAY_OF_MONTH, 1)

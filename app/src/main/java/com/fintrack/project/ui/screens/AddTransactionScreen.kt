@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -39,11 +38,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.Dp
-import kotlin.math.max
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(
     onBackClick: () -> Unit,
@@ -73,6 +69,7 @@ fun AddTransactionScreen(
 
     var userPin by remember { mutableStateOf<String?>(null) }
     var showPinDialog by remember { mutableStateOf(false) }
+    var userGoalKey by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
@@ -85,6 +82,7 @@ fun AddTransactionScreen(
 
                 val user = db.userDao().getUserById(userId)
                 userPin = user?.pinCode
+                userGoalKey = "${userId}_${user?.username}"
             }
         }
     }
@@ -115,8 +113,8 @@ fun AddTransactionScreen(
                     val totalExpNew = db.transactionDao().getTotalAmount(userId, TransactionType.EXPENSE) ?: 0.0
                     newBalance = totalIncNew - totalExpNew
 
-                    val goalAmount = prefs.getFloat("GOAL_AMOUNT_$userId", 0f).toDouble()
-                    val goalName = prefs.getString("GOAL_NAME_$userId", "") ?: ""
+                    val goalAmount = prefs.getFloat("GOAL_AMOUNT_$userGoalKey", 0f).toDouble()
+                    val goalName = prefs.getString("GOAL_NAME_$userGoalKey", "") ?: ""
 
                     var progressMsg = ""
                     var reached100Percent = false
@@ -270,12 +268,23 @@ fun AddTransactionScreen(
                     Text("Danh mục", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1E293B))
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    CustomFlowRow(modifier = Modifier.fillMaxWidth(), spacing = 8.dp) {
+                    CategoryFlowLayout(modifier = Modifier.fillMaxWidth(), spacing = 8.dp) {
                         currentCategories.forEach { category ->
                             val isSelected = selectedCategoryId == category.id
-                            Box(modifier = Modifier.clip(RoundedCornerShape(16.dp)).border(1.dp, if (isSelected) mainColor else Color(0xFFE2E8F0), RoundedCornerShape(16.dp)).background(if (isSelected) mainColor.copy(alpha = 0.1f) else Color.White).clickable { selectedCategoryId = category.id; selectedCategoryName = category.name }.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            Box(
+                                modifier = Modifier.clip(RoundedCornerShape(16.dp)).border(1.dp, if (isSelected) mainColor else Color(0xFFE2E8F0), RoundedCornerShape(16.dp))
+                                    .background(if (isSelected) mainColor.copy(alpha = 0.1f) else Color.White).clickable { selectedCategoryId = category.id; selectedCategoryName = category.name }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(getIconForCategory(category.name), null, tint = if (isSelected) mainColor else Color.Gray, modifier = Modifier.size(16.dp)); Spacer(modifier = Modifier.width(6.dp)); Text(category.name, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) mainColor else Color.DarkGray)
+                                    Icon(
+                                        resolveCategoryIcon(category.icon ?: category.name),
+                                        contentDescription = null,
+                                        tint = if (isSelected) mainColor else Color.Gray,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(category.name, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) mainColor else Color.DarkGray)
                                 }
                             }
                         }
@@ -304,34 +313,21 @@ fun AddTransactionScreen(
                 ) { DatePicker(state = datePickerState) }
             }
 
-            // --- HỘP THOẠI MÃ PIN TÙY CHỈNH ---
             if (showPinDialog) {
                 var inputPin by remember { mutableStateOf("") }
-
-                fun onPinNumberClick(number: Int) {
-                    if (inputPin.length < 4) inputPin += number.toString()
-                }
-                fun onPinBackspaceClick() {
-                    if (inputPin.isNotEmpty()) inputPin = inputPin.dropLast(1)
-                }
+                fun onPinNumberClick(number: Int) { if (inputPin.length < 4) inputPin += number.toString() }
+                fun onPinBackspaceClick() { if (inputPin.isNotEmpty()) inputPin = inputPin.dropLast(1) }
 
                 Dialog(onDismissRequest = { showPinDialog = false }) {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Xác thực bảo mật", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                             Spacer(modifier = Modifier.height(8.dp))
                             Text("Vui lòng nhập mã PIN để lưu giao dịch", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center)
 
                             Spacer(modifier = Modifier.height(24.dp))
-
-                            // 4 Dấu chấm hiển thị PIN
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 for (i in 0 until 4) {
                                     val isFilled = i < inputPin.length
@@ -341,7 +337,6 @@ fun AddTransactionScreen(
 
                             Spacer(modifier = Modifier.height(32.dp))
 
-                            // Bàn phím số Custom
                             val padModifier = Modifier.size(56.dp).clip(CircleShape)
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -365,8 +360,11 @@ fun AddTransactionScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Box(modifier = padModifier)
                                     PinNumberButton("0", padModifier) { onPinNumberClick(0) }
-                                    Box(modifier = padModifier.clickable { onPinBackspaceClick() }.background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Backspace, null, tint = Color(0xFF1E293B))
+                                    Box(
+                                        modifier = padModifier.clickable { onPinBackspaceClick() }.background(Color(0xFFF1F5F9)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("⌫", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
                                     }
                                 }
                             }
@@ -374,11 +372,7 @@ fun AddTransactionScreen(
                             Spacer(modifier = Modifier.height(24.dp))
 
                             Row(modifier = Modifier.fillMaxWidth()) {
-                                OutlinedButton(
-                                    onClick = { showPinDialog = false },
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) { Text("Hủy", color = Color.Gray) }
+                                OutlinedButton(onClick = { showPinDialog = false }, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp)) { Text("Hủy", color = Color.Gray) }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Button(
                                     onClick = {
@@ -390,10 +384,7 @@ fun AddTransactionScreen(
                                             inputPin = ""
                                         }
                                     },
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF)),
-                                    enabled = inputPin.length == 4
+                                    modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF)), enabled = inputPin.length == 4
                                 ) { Text("Xác nhận") }
                             }
                         }
@@ -404,7 +395,6 @@ fun AddTransactionScreen(
     }
 }
 
-// Composable phụ trợ cho bàn phím số
 @Composable
 fun PinNumberButton(text: String, modifier: Modifier, onClick: () -> Unit) {
     Box(modifier = modifier.clickable(onClick = onClick).background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {
@@ -412,53 +402,9 @@ fun PinNumberButton(text: String, modifier: Modifier, onClick: () -> Unit) {
     }
 }
 
-data class CategoryItem(val id: Int, val name: String, val icon: ImageVector)
-
 @Composable
 fun DetailRow(label: String, value: String, valueColor: Color, isBold: Boolean = false) {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Color.Gray, fontSize = 13.sp); Text(value, color = valueColor, fontSize = 14.sp, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
-    }
-}
-
-@Composable
-fun CustomFlowRow(modifier: Modifier = Modifier, spacing: Dp = 8.dp, content: @Composable () -> Unit) {
-    Layout(content = content, modifier = modifier) { measurables, constraints ->
-        val horizontalSpacing = spacing.roundToPx(); val verticalSpacing = spacing.roundToPx()
-        var currentRowWidth = 0; var currentRowHeight = 0; var totalHeight = 0
-        val placeables = measurables.map { measurable ->
-            val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
-            if (currentRowWidth + placeable.width > constraints.maxWidth) {
-                totalHeight += currentRowHeight + verticalSpacing; currentRowWidth = 0; currentRowHeight = 0
-            }
-            currentRowWidth += placeable.width + horizontalSpacing; currentRowHeight = max(currentRowHeight, placeable.height)
-            placeable
-        }
-        totalHeight += currentRowHeight
-        layout(constraints.maxWidth, totalHeight) {
-            var xPosition = 0; var yPosition = 0; var rowHeight = 0
-            placeables.forEach { placeable ->
-                if (xPosition + placeable.width > constraints.maxWidth) { xPosition = 0; yPosition += rowHeight + verticalSpacing; rowHeight = 0 }
-                placeable.placeRelative(xPosition, yPosition)
-                xPosition += placeable.width + horizontalSpacing; rowHeight = max(rowHeight, placeable.height)
-            }
-        }
-    }
-}
-
-fun getIconForCategory(name: String): ImageVector {
-    return when (name) {
-        "Ăn uống" -> Icons.Default.Fastfood
-        "Giáo dục" -> Icons.Default.School
-        "Y tế" -> Icons.Default.LocalHospital
-        "Giải trí" -> Icons.Default.Movie
-        "Giao thông" -> Icons.Default.DirectionsCar
-        "Nhà ở" -> Icons.Default.Home
-        "Mua sắm" -> Icons.Default.ShoppingCart
-        "Lương" -> Icons.Default.AttachMoney
-        "Thưởng" -> Icons.Default.CardGiftcard
-        "Kinh doanh" -> Icons.Default.Store
-        "Đầu tư" -> Icons.Default.TrendingUp
-        else -> Icons.Default.MoreHoriz
     }
 }

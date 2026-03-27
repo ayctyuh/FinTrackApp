@@ -47,11 +47,13 @@ fun TransactionHistoryScreen(
     val dateRangePickerState = rememberDateRangePickerState()
 
     var displayTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
-    var categoriesMap by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var currentUserId by remember { mutableIntStateOf(-1) }
-    var currentBalance by remember { mutableDoubleStateOf(0.0) } // Thêm biến lưu số dư
 
-    // State quản lý popup
+    // ĐÃ SỬA: Đổi String thành Category
+    var categoriesMap by remember { mutableStateOf<Map<Int, com.fintrack.project.data.model.Category>>(emptyMap()) }
+
+    var currentUserId by remember { mutableIntStateOf(-1) }
+    var currentBalance by remember { mutableDoubleStateOf(0.0) }
+
     var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
 
     val timeFormatter = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale("vi", "VN"))
@@ -79,10 +81,12 @@ fun TransactionHistoryScreen(
 
             if (currentUserId != -1) {
                 val db = FinTrackDatabase.getInstance(context)
-                categoriesMap = db.categoryDao().getUserCategories(currentUserId).associate { it.id to it.name }
+
+                // ĐÃ SỬA: Dùng associateBy để lấy cả Object Category
+                categoriesMap = db.categoryDao().getUserCategories(currentUserId).associateBy { it.id }
+
                 loadTransactions()
 
-                // Tính số dư cho popup
                 val totalInc = db.transactionDao().getTotalAmount(currentUserId, TransactionType.INCOME) ?: 0.0
                 val totalExp = db.transactionDao().getTotalAmount(currentUserId, TransactionType.EXPENSE) ?: 0.0
                 currentBalance = totalInc - totalExp
@@ -148,13 +152,15 @@ fun TransactionHistoryScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
                         items(displayTransactions) { txn ->
                             val isInc = txn.type == TransactionType.INCOME
-                            val categoryName = categoriesMap[txn.categoryId] ?: "Khác"
-                            val displayIcon = getIconForCategory(categoryName)
+
+                            // ĐÃ SỬA CHỖ NÀY ĐỂ HIỆN ĐÚNG ICON VÀ TÊN
+                            val category = categoriesMap[txn.categoryId]
+                            val categoryName = category?.name ?: "Khác"
+                            val displayIcon = resolveCategoryIcon(category?.icon ?: category?.name)
                             val displayDescription = if (!txn.description.isNullOrEmpty()) txn.description else categoryName
 
                             Card(
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-                                    .clickable { selectedTxn = txn }, // MỞ POPUP KHI CLICK
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clickable { selectedTxn = txn },
                                 colors = CardDefaults.cardColors(containerColor = Color.White),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
@@ -174,11 +180,10 @@ fun TransactionHistoryScreen(
             }
         }
 
-        // --- HIỂN THỊ POPUP ---
         selectedTxn?.let { txn ->
             TransactionDetailDialog(
                 transaction = txn,
-                categoryName = categoriesMap[txn.categoryId] ?: "Khác",
+                categoryName = categoriesMap[txn.categoryId]?.name ?: "Khác", // CẬP NHẬT TRUYỀN TÊN VÀO POPUP
                 currentBalance = currentBalance,
                 onDismiss = { selectedTxn = null }
             )
@@ -200,7 +205,6 @@ fun TransactionHistoryScreen(
     }
 }
 
-// ... (Giữ nguyên hàm DateBox ở dưới cùng)
 @Composable
 fun DateBox(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(

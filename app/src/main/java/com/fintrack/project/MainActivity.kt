@@ -10,67 +10,40 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.fintrack.project.ui.screens.DashboardScreen
-import com.fintrack.project.ui.screens.ProfileScreen
-import com.fintrack.project.ui.screens.ForgotPasswordScreen
-import com.fintrack.project.ui.screens.EditProfileScreen
-import com.fintrack.project.ui.screens.AddTransactionScreen
-import com.fintrack.project.ui.screens.LoginScreen
-import com.fintrack.project.ui.screens.OnboardingScreen // Đừng quên import màn hình mới
-import com.fintrack.project.ui.screens.SignupScreen
-import com.fintrack.project.ui.screens.SplashScreen
-import com.fintrack.project.ui.screens.WelcomeScreen
+import com.fintrack.project.ui.screens.*
 import com.fintrack.project.ui.theme.FinTrackProjectTheme
-import com.fintrack.project.ui.screens.NotificationScreen
-import com.fintrack.project.ui.screens.PinSetupScreen
-import com.fintrack.project.ui.screens.SecurityScreen
-import com.fintrack.project.ui.screens.StatisticsScreen
-import com.fintrack.project.ui.screens.TermsOfServiceScreen
-import com.fintrack.project.ui.screens.TransactionHistoryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Khởi tạo SharedPreferences để lưu cờ kiểm tra lần đầu đăng nhập
         val sharedPreferences = getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
 
         setContent {
             FinTrackProjectTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var appState by remember { mutableStateOf<AppState>(AppState.SPLASH) }
-
-                    // Stack lịch sử điều hướng
                     val backStack = remember { mutableStateListOf<AppState>() }
 
-                    // Hàm điều hướng — tự động lưu lịch sử
+                    var selectedCategoryIdToEdit by remember { mutableIntStateOf(-1) }
+
                     fun navigateTo(next: AppState) {
                         backStack.add(appState)
                         appState = next
                     }
 
-                    // Hàm quay lại
                     fun navigateBack() {
                         if (backStack.isNotEmpty()) {
-                            appState = backStack.removeAt(backStack.lastIndex) // <-- Đã sửa
+                            appState = backStack.removeAt(backStack.lastIndex)
                         }
                     }
 
-                    // Bật back khi có lịch sử
-                    BackHandler(enabled = backStack.isNotEmpty()) {
-                        navigateBack()
-                    }
+                    BackHandler(enabled = backStack.isNotEmpty()) { navigateBack() }
 
                     when (appState) {
                         AppState.SPLASH -> {
-                            SplashScreen(
-                                onSplashComplete = {
-                                    // Splash không lưu vào stack
-                                    backStack.clear()
-                                    appState = AppState.WELCOME
-                                }
-                            )
+                            SplashScreen(onSplashComplete = { backStack.clear(); appState = AppState.WELCOME })
                         }
                         AppState.WELCOME -> {
                             WelcomeScreen(
@@ -82,63 +55,35 @@ class MainActivity : ComponentActivity() {
                         AppState.LOGIN -> {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    backStack.clear() // Xóa lịch sử sau khi đăng nhập
-
-                                    // Lấy ID của người dùng vừa đăng nhập thành công
+                                    backStack.clear()
                                     val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
-
-                                    // Tạo khóa riêng biệt cho từng người dùng (VD: HAS_SEEN_ONBOARDING_1)
                                     val userOnboardingKey = "HAS_SEEN_ONBOARDING_$loggedInUserId"
-
-                                    // Kiểm tra xem người dùng NÀY đã xem Onboarding chưa
                                     val hasSeenOnboarding = sharedPreferences.getBoolean(userOnboardingKey, false)
-
-                                    if (!hasSeenOnboarding) {
-                                        appState = AppState.ONBOARDING
-                                    } else {
-                                        appState = AppState.DASHBOARD
-                                    }
+                                    if (!hasSeenOnboarding) appState = AppState.ONBOARDING else appState = AppState.DASHBOARD
                                 },
                                 onSignupClick = { navigateTo(AppState.SIGNUP) },
                                 onForgotPasswordClick = { navigateTo(AppState.FORGOT_PASSWORD) }
                             )
                         }
-
                         AppState.ONBOARDING -> {
                             OnboardingScreen(
                                 onNextClick = {
-                                    // Lấy ID user hiện tại
                                     val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
                                     val userOnboardingKey = "HAS_SEEN_ONBOARDING_$loggedInUserId"
-
-                                    // Lưu lại cờ là user này đã xem Onboarding
                                     sharedPreferences.edit().putBoolean(userOnboardingKey, true).apply()
-
-                                    backStack.clear()
-                                    appState = AppState.DASHBOARD
+                                    backStack.clear(); appState = AppState.DASHBOARD
                                 },
                                 onBackClick = {
-                                    // Nếu người dùng bấm Back ở màn Onboarding, ta cho họ đăng xuất luôn
                                     sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
                                     appState = AppState.LOGIN
                                 }
                             )
                         }
                         AppState.SIGNUP -> {
-                            SignupScreen(
-                                onSignupSuccess = {
-                                    // Đăng ký xong → về Login, xóa stack
-                                    backStack.clear()
-                                    appState = AppState.LOGIN
-                                },
-                                onBackClick = { navigateBack() }
-                            )
+                            SignupScreen(onSignupSuccess = { backStack.clear(); appState = AppState.LOGIN }, onBackClick = { navigateBack() })
                         }
                         AppState.FORGOT_PASSWORD -> {
-                            ForgotPasswordScreen(
-                                onBackClick = { navigateBack() },
-                                onSignupClick = { navigateTo(AppState.SIGNUP) }
-                            )
+                            ForgotPasswordScreen(onBackClick = { navigateBack() }, onSignupClick = { navigateTo(AppState.SIGNUP) })
                         }
                         AppState.DASHBOARD -> {
                             DashboardScreen(
@@ -146,74 +91,51 @@ class MainActivity : ComponentActivity() {
                                 onProfileClick = { navigateTo(AppState.PROFILE) },
                                 onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) },
                                 onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
-                                onStatisticsClick = { navigateTo(AppState.STATISTICS) } // Khai báo hàm này để chuyển sang màn Thống kê
+                                onStatisticsClick = { navigateTo(AppState.STATISTICS) }
                             )
                         }
-
                         AppState.PROFILE -> {
                             ProfileScreen(
                                 onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
                                 onNavigateToEdit = { navigateTo(AppState.EDIT_PROFILE) },
                                 onNavigateToSecurity = { navigateTo(AppState.SECURITY) },
-                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, // <--- BẠN THÊM DÒNG NÀY VÀO ĐÂY NHÉ
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
                                 onLogout = {
-                                    val sharedPreferences = getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
                                     sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
                                     backStack.clear()
                                     appState = AppState.LOGIN
+                                },
+                                onNavigateToCategory = { navigateTo(AppState.CATEGORY_LIST) },
+                                onStatisticsClick = { navigateTo(AppState.STATISTICS) } // ĐÃ FIX LỖI THIẾU THAM SỐ
+                            )
+                        }
+                        AppState.EDIT_PROFILE -> {
+                            EditProfileScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                        }
+                        AppState.NOTIFICATIONS -> { NotificationScreen(onBackClick = { navigateBack() }) }
+                        AppState.TRANSACTION_HISTORY -> { TransactionHistoryScreen(onBackClick = { navigateBack() }) }
+                        AppState.ADD_TRANSACTION -> {
+                            AddTransactionScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) })
+                        }
+                        AppState.SECURITY -> {
+                            SecurityScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onNavigateToPinSetup = { navigateTo(AppState.PIN_SETUP) }, onNavigateToTerms = { navigateTo(AppState.TERMS_OF_SERVICE) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                        }
+                        AppState.TERMS_OF_SERVICE -> { TermsOfServiceScreen(onBackClick = { navigateBack() }) }
+                        AppState.PIN_SETUP -> { PinSetupScreen(onBackClick = { navigateBack() }, onPinSaved = { navigateBack() }) }
+                        AppState.STATISTICS -> {
+                            StatisticsScreen(onNavigateToHome = { navigateTo(AppState.DASHBOARD) }, onNavigateToProfile = { navigateTo(AppState.PROFILE) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                        }
+                        AppState.CATEGORY_LIST -> {
+                            CategoryScreen(
+                                onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, onNavigateToAddCategory = { navigateTo(AppState.ADD_CATEGORY) },
+                                onCategoryClick = { categoryId ->
+                                    selectedCategoryIdToEdit = categoryId
+                                    navigateTo(AppState.EDIT_CATEGORY)
                                 }
                             )
                         }
-
-                        AppState.EDIT_PROFILE -> {
-                            EditProfileScreen(
-                                onBackClick = { navigateBack() },
-                                onHomeClick = { navigateTo(AppState.DASHBOARD) },
-                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) } // Phải có dòng này!
-                            )
-                        }
-                        AppState.NOTIFICATIONS -> {
-                            NotificationScreen(
-                                onBackClick = { navigateBack() }
-                            )
-                        }
-                        AppState.TRANSACTION_HISTORY -> {
-                            TransactionHistoryScreen(
-                                onBackClick = { navigateBack() }
-                            )
-                        }
-                        AppState.ADD_TRANSACTION -> {
-                            AddTransactionScreen(
-                                onBackClick = { navigateBack() },
-                                onHomeClick = { navigateTo(AppState.DASHBOARD) }
-                            )
-                        }
-                        AppState.SECURITY -> {
-                            SecurityScreen(
-                                onBackClick = { navigateBack() },
-                                onHomeClick = { navigateTo(AppState.DASHBOARD) },
-                                onNavigateToPinSetup = { navigateTo(AppState.PIN_SETUP) },
-                                onNavigateToTerms = { navigateTo(AppState.TERMS_OF_SERVICE) }, // <-- THÊM
-                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }
-                            )
-                        }
-                        AppState.TERMS_OF_SERVICE -> {
-                            TermsOfServiceScreen(onBackClick = { navigateBack() })
-                        }
-
-                        AppState.PIN_SETUP -> {
-                            PinSetupScreen(
-                                onBackClick = { navigateBack() },
-                                onPinSaved = { navigateBack() } // Lưu xong thì quay lại màn Security
-                            )
-                        }
-                        AppState.STATISTICS -> {
-                            StatisticsScreen(
-                                onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
-                                onNavigateToProfile = { navigateTo(AppState.PROFILE) },
-                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }
-                            )
-                        }
+                        AppState.ADD_CATEGORY -> { AddCategoryScreen(onBackClick = { navigateBack() }) }
+                        AppState.EDIT_CATEGORY -> { EditCategoryScreen(categoryId = selectedCategoryIdToEdit, onBackClick = { navigateBack() }) }
                     }
                 }
             }
@@ -221,9 +143,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Cập nhật Enum để thêm ONBOARDING
 enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
-    NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE, // <-- THÊM TERMS
-    TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS
+    NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE,
+    TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS,
+    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY
 }

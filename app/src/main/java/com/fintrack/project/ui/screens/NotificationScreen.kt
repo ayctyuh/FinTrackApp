@@ -18,8 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fintrack.project.data.database.FinTrackDatabase
@@ -45,9 +49,10 @@ fun NotificationScreen(
     var isLoading by remember { mutableStateOf(true) }
     var currentUserId by remember { mutableIntStateOf(-1) }
 
-    // Popup state
     var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
-    var categoriesMap by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    // MỚI: 2 Map để phục vụ tra cứu
+    var categoryIdMap by remember { mutableStateOf<Map<Int, com.fintrack.project.data.model.Category>>(emptyMap()) }
+    var categoryNameMap by remember { mutableStateOf<Map<String, com.fintrack.project.data.model.Category>>(emptyMap()) }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
 
     LaunchedEffect(Unit) {
@@ -59,13 +64,13 @@ fun NotificationScreen(
                 val db = FinTrackDatabase.getInstance(context)
                 notifications = db.notificationDao().getUserNotifications(currentUserId)
 
-                // Chuẩn bị dữ liệu cho Popup
-                categoriesMap = db.categoryDao().getUserCategories(currentUserId).associate { it.id to it.name }
+                val cats = db.categoryDao().getUserCategories(currentUserId)
+                categoryIdMap = cats.associateBy { it.id }
+                categoryNameMap = cats.associateBy { it.name } // Tra cứu ngược để tìm Icon
+
                 val totalInc = db.transactionDao().getTotalAmount(currentUserId, TransactionType.INCOME) ?: 0.0
                 val totalExp = db.transactionDao().getTotalAmount(currentUserId, TransactionType.EXPENSE) ?: 0.0
                 currentBalance = totalInc - totalExp
-
-                // LƯU Ý: KHÔNG GỌI MARK ALL AS READ TỰ ĐỘNG NỮA
             }
             isLoading = false
         }
@@ -80,14 +85,13 @@ fun NotificationScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) { Icon(Icons.Default.ChevronLeft, "Quay lại") }
                 },
-                // NÚT ĐÁNH DẤU ĐÃ ĐỌC
                 actions = {
                     TextButton(onClick = {
                         scope.launch(Dispatchers.IO) {
                             if (currentUserId != -1) {
                                 val db = FinTrackDatabase.getInstance(context)
                                 db.notificationDao().markAllAsRead(currentUserId)
-                                notifications = db.notificationDao().getUserNotifications(currentUserId) // Load lại danh sách
+                                notifications = db.notificationDao().getUserNotifications(currentUserId)
                             }
                         }
                     }) {
@@ -98,9 +102,7 @@ fun NotificationScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues)
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF2E5BFF))
@@ -124,9 +126,31 @@ fun NotificationScreen(
                 ) {
                     items(notifications) { notif ->
                         val isTransaction = notif.type == NotificationType.TRANSACTION
-                        val displayIcon = if (isTransaction) getIconForCategory(notif.title) else getIconDataForType(notif.type).icon
-                        val iconBgColor = if (isTransaction) Color(0xFFE0E7FF) else getIconDataForType(notif.type).bgColor
-                        val iconTintColor = if (isTransaction) Color(0xFF2E5BFF) else Color.White
+                        val isIncome = notif.message.contains("Khoản thu")
+
+                        val amountMatch = Regex("""([\d.,]+\s*[đ₫])""").find(notif.message)
+                        val amountStr = amountMatch?.value ?: ""
+
+                        // SỬA: Lấy icon dựa vào name map
+                        val category = categoryNameMap[notif.title]
+                        val displayIcon = if (isTransaction) resolveCategoryIcon(category?.icon ?: category?.name) else getIconDataForType(notif.type).icon
+
+                        val iconBgColor = if (isTransaction) {
+                            if (isIncome) Color(0xFFD1FAE5) else Color(0xFFFEE2E2)
+                        } else {
+                            getIconDataForType(notif.type).bgColor
+                        }
+                        val iconTintColor = if (isTransaction) {
+                            if (isIncome) Color(0xFF10B981) else Color(0xFFEF4444)
+                        } else {
+                            Color.White
+                        }
+
+                        val displayDesc = if (isTransaction && notif.description.contains("Ghi nhận Khoản")) {
+                            "Bạn vừa có thêm 1 giao dịch"
+                        } else {
+                            notif.description
+                        }
 
                         Card(
                             modifier = Modifier
@@ -135,11 +159,9 @@ fun NotificationScreen(
                                 .clickable {
                                     scope.launch(Dispatchers.IO) {
                                         val db = FinTrackDatabase.getInstance(context)
-                                        // 1. Đánh dấu riêng thông báo này là đã đọc
                                         db.notificationDao().markAsRead(notif.id)
                                         notifications = db.notificationDao().getUserNotifications(currentUserId)
 
-                                        // 2. Tìm ID giao dịch và Show Popup
                                         if (notif.transactionId != null) {
                                             selectedTxn = db.transactionDao().getTransactionById(notif.transactionId)
                                         }
@@ -147,30 +169,45 @@ fun NotificationScreen(
                                 },
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Row(modifier = Modifier.padding(16.dp)) {
-                                Box(modifier = Modifier.size(40.dp).background(iconBgColor, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                                    Icon(displayIcon, contentDescription = null, tint = iconTintColor, modifier = Modifier.size(20.dp))
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(48.dp).background(iconBgColor, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                                    Icon(displayIcon, contentDescription = null, tint = iconTintColor, modifier = Modifier.size(24.dp))
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(16.dp))
+
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(notif.title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("💰", fontSize = 14.sp)
+                                        if (!isTransaction) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("🔔", fontSize = 14.sp)
+                                        }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(notif.description, fontSize = 13.sp, color = Color(0xFF64748B), maxLines = 2)
+                                    Text(displayDesc, fontSize = 13.sp, color = Color(0xFF64748B), maxLines = 1, overflow = TextOverflow.Ellipsis)
 
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Schedule, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(formatDate(notif.createdAt), fontSize = 11.sp, color = Color(0xFF94A3B8))
                                     }
                                 }
+
+                                if (isTransaction && amountStr.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = (if (isIncome) "+" else "-") + amountStr,
+                                        color = iconTintColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+
                                 if (!notif.isRead) {
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Box(modifier = Modifier.size(8.dp).background(Color(0xFFF59E0B), CircleShape))
                                 }
                             }
@@ -180,13 +217,12 @@ fun NotificationScreen(
             }
         }
 
-        // --- HIỂN THỊ POPUP NẾU TÌM THẤY GIAO DỊCH ---
         selectedTxn?.let { txn ->
             TransactionDetailDialog(
                 transaction = txn,
-                categoryName = categoriesMap[txn.categoryId] ?: "Khác",
+                categoryName = categoryIdMap[txn.categoryId]?.name ?: "Khác", // SỬA NỐT CHỖ NÀY
                 currentBalance = currentBalance,
-                onDismiss = { selectedTxn = null } // Đóng popup
+                onDismiss = { selectedTxn = null }
             )
         }
     }

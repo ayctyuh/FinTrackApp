@@ -35,8 +35,10 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToEdit: () -> Unit,
     onNavigateToSecurity: () -> Unit,
-    onAddClick: () -> Unit, // Đã thêm tham số này
-    onLogout: () -> Unit
+    onAddClick: () -> Unit,
+    onLogout: () -> Unit,
+    onNavigateToCategory: () -> Unit, // BỔ SUNG THAM SỐ NÀY
+    onStatisticsClick: () -> Unit // BỔ SUNG THAM SỐ NÀY ĐỂ NAVBAR CÓ THỂ CHUYỂN TRANG
 ) {
     val context = LocalContext.current
     var user by remember { mutableStateOf<User?>(null) }
@@ -50,8 +52,16 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        // Truyền onAddClick xuống thanh Navbar
-        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onNavigateToHome, onAddClick = onAddClick) },
+        // GỌI NAVBAR VỚI ĐẦY ĐỦ THAM SỐ ĐỂ FIX LỖI "AMBIGUITY"
+        bottomBar = {
+            ProfileBottomNavigationBar(
+                onHomeClick = onNavigateToHome,
+                onAddClick = onAddClick,
+                onProfileClick = {}, // Đang ở Profile rồi
+                onStatisticsClick = onStatisticsClick, // TRUYỀN HÀM CHUYỂN TRANG VÀO ĐÂY
+                currentScreen = "Cá nhân"
+            )
+        },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
@@ -115,7 +125,8 @@ fun ProfileScreen(
                     Column {
                         ProfileMenuItemColor(Icons.Outlined.Person, Color(0xFF2E5BFF), "Chỉnh sửa hồ sơ", "Cập nhật thông tin cá nhân", onNavigateToEdit)
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
-                        ProfileMenuItemColor(Icons.Outlined.Category, Color(0xFFEF4444), "Danh mục", "Thêm danh mục chi tiêu") { }
+                        // GẮN SỰ KIỆN CHUYỂN SANG MÀN DANH MỤC
+                        ProfileMenuItemColor(Icons.Outlined.Category, Color(0xFFEF4444), "Danh mục", "Thêm danh mục chi tiêu", onNavigateToCategory)
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
                         ProfileMenuItemColor(Icons.Outlined.Security, Color(0xFF10B981), "Bảo mật", "PIN, điều khoản", onNavigateToSecurity)
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
@@ -144,7 +155,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Text("FinTrack v2.4.1 - © 2025", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Color(0xFF94A3B8), fontSize = 12.sp)
+                Text("FinTrack v2.4.1 - © 2026", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Color(0xFF94A3B8), fontSize = 12.sp)
             }
         }
     }
@@ -164,16 +175,4 @@ fun ProfileMenuItemColor(icon: ImageVector, iconBgColor: Color, title: String, s
     }
 }
 
-@Composable
-fun ProfileBottomNavigationBar(onHomeClick: () -> Unit, onAddClick: () -> Unit) {
-    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        NavigationBarItem(icon = { Icon(Icons.Default.Home, "Trang chủ") }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = false, onClick = onHomeClick)
-        NavigationBarItem(icon = { Icon(Icons.Default.BarChart, "Thống kê") }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = false, onClick = { })
-
-        // Gắn sự kiện onClick vào nút Thêm
-        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Thêm", tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
-
-        NavigationBarItem(icon = { Icon(Icons.Default.PieChart, "Ngân sách") }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
-        NavigationBarItem(icon = { Icon(Icons.Default.Person, "Cá nhân") }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = true, onClick = { }, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
-    }
-}
+// 3. ĐÃ XÓA ProfileBottomNavigationBar TẠI ĐÂY ĐỂ TRÁNH TRÙNG LẶP (CONFLICT) VÀ SỬ DỤNG BẢN CHUNG

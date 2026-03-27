@@ -30,15 +30,13 @@ val DEFAULT_EXPENSE_CATEGORIES = listOf(
     "Giải trí",
     "Giao thông",
     "Nhà ở",
-    "Mua sắm",
-    "Khác"
+    "Mua sắm"
 )
 
 val DEFAULT_INCOME_CATEGORIES = listOf(
     "Lương",
     "Thưởng",
     "Kinh doanh",
-    "Đầu tư",
-    "Khác"
+    "Đầu tư"
 )
 

@@ -49,7 +49,7 @@ fun DashboardScreen(
     onProfileClick: () -> Unit = {},
     onSeeAllClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
-    onStatisticsClick: () -> Unit = {} // Thêm dòng này để xử lý nút Thống kê
+    onStatisticsClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -58,13 +58,12 @@ fun DashboardScreen(
     var monthlyExpense by remember { mutableDoubleStateOf(0.0) }
     var recentTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
     var unreadNotiCount by remember { mutableIntStateOf(0) }
-    var categoriesMap by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var currentUserId by remember { mutableIntStateOf(-1) }
 
-    // Popup state
+    // SỬA: Map lưu trữ toàn bộ Object Category thay vì chỉ tên
+    var categoriesMap by remember { mutableStateOf<Map<Int, com.fintrack.project.data.model.Category>>(emptyMap()) }
     var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
 
-    // Trạng thái Mục tiêu tiết kiệm
     var userGoalKey by remember { mutableStateOf("") }
     var goalName by remember { mutableStateOf("") }
     var goalAmount by remember { mutableDoubleStateOf(0.0) }
@@ -86,7 +85,6 @@ fun DashboardScreen(
                 val user = userDao.getUserById(loggedInUserId)
                 username = user?.username ?: "Người dùng mới"
 
-                // TẠO KHÓA MỤC TIÊU ĐỘC NHẤT
                 val generatedKey = "${loggedInUserId}_${user?.username}"
                 userGoalKey = generatedKey
 
@@ -103,7 +101,9 @@ fun DashboardScreen(
                         categoryDao.insertCategory(com.fintrack.project.data.model.Category(userId = loggedInUserId, name = catName, type = com.fintrack.project.data.model.CategoryType.INCOME, isDefault = true))
                     }
                 }
-                categoriesMap = categoryDao.getUserCategories(loggedInUserId).associate { it.id to it.name }
+
+                // SỬA: Lấy toàn bộ model để sau này trích xuất icon
+                categoriesMap = categoryDao.getUserCategories(loggedInUserId).associateBy { it.id }
 
                 val calendar = Calendar.getInstance()
                 val monthStart = calendar.clone() as Calendar
@@ -123,18 +123,9 @@ fun DashboardScreen(
 
                     if (currentTime - lastReminderTime > oneDayInMillis) {
                         val progress = (currentBalance / goalAmount * 100).toInt().coerceIn(0, 100)
-
                         if (progress < 100) {
                             db.notificationDao().insertNotification(
-                                Notification(
-                                    userId = loggedInUserId,
-                                    title = "Nhắc nhở mục tiêu \uD83D\uDCAA",
-                                    description = "Tiến độ hiện tại: $progress%",
-                                    message = "Đừng quên bạn đang thực hiện mục tiêu '$goalName'. Hiện bạn đã đạt được $progress%. Tiếp tục duy trì thói quen ghi chép thu chi nhé!",
-                                    type = NotificationType.REMINDER,
-                                    createdAt = currentTime,
-                                    isRead = false
-                                )
+                                Notification(userId = loggedInUserId, title = "Nhắc nhở mục tiêu \uD83D\uDCAA", description = "Tiến độ hiện tại: $progress%", message = "Đừng quên bạn đang thực hiện mục tiêu '$goalName'. Hiện bạn đã đạt được $progress%. Tiếp tục duy trì thói quen ghi chép thu chi nhé!", type = NotificationType.REMINDER, createdAt = currentTime, isRead = false)
                             )
                             sharedPreferences.edit().putLong("LAST_GOAL_REMINDER_$loggedInUserId", currentTime).apply()
                         }
@@ -151,31 +142,17 @@ fun DashboardScreen(
 
     Scaffold(
         bottomBar = {
-            ProfileBottomNavigationBar(
-                onHomeClick = {},
-                onAddClick = onAddClick,
-                onProfileClick = onProfileClick,
-                onStatisticsClick = onStatisticsClick, // Truyền hàm xử lý
-                currentScreen = "Trang chủ"
-            )
+            ProfileBottomNavigationBar(onHomeClick = {}, onAddClick = onAddClick, onProfileClick = onProfileClick, onStatisticsClick = onStatisticsClick, currentScreen = "Trang chủ")
         },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding()).verticalScroll(rememberScrollState())
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding()).verticalScroll(rememberScrollState())) {
             HeaderSection(username = username, balance = currentBalance, monthlyExpense = monthlyExpense, unreadNotiCount = unreadNotiCount, onNotificationClick = onNotificationClick)
             Spacer(modifier = Modifier.height(24.dp))
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
 
-                SavingGoalCard(
-                    goalName = goalName,
-                    goalAmount = goalAmount,
-                    goalIconStr = goalIconStr,
-                    currentBalance = currentBalance,
-                    onClick = { showGoalDialog = true }
-                )
+                SavingGoalCard(goalName = goalName, goalAmount = goalAmount, goalIconStr = goalIconStr, currentBalance = currentBalance, onClick = { showGoalDialog = true })
 
                 Spacer(modifier = Modifier.height(24.dp))
                 TimeFilterTabs()
@@ -183,12 +160,7 @@ fun DashboardScreen(
                 if (recentTransactions.isEmpty()) {
                     RecentTransactionsEmptyState(onSeeAllClick = onSeeAllClick)
                 } else {
-                    RecentTransactionsList(
-                        transactions = recentTransactions,
-                        categoriesMap = categoriesMap,
-                        onSeeAllClick = onSeeAllClick,
-                        onTransactionClick = { txn -> selectedTxn = txn }
-                    )
+                    RecentTransactionsList(transactions = recentTransactions, categoriesMap = categoriesMap, onSeeAllClick = onSeeAllClick, onTransactionClick = { txn -> selectedTxn = txn })
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -196,21 +168,11 @@ fun DashboardScreen(
 
         if (showGoalDialog) {
             GoalSetupDialog(
-                currentName = goalName,
-                currentAmount = goalAmount,
-                currentIcon = goalIconStr,
-                onDismiss = { showGoalDialog = false },
+                currentName = goalName, currentAmount = goalAmount, currentIcon = goalIconStr, onDismiss = { showGoalDialog = false },
                 onSave = { name, amount, iconStr ->
-                    goalName = name
-                    goalAmount = amount
-                    goalIconStr = iconStr
-
+                    goalName = name; goalAmount = amount; goalIconStr = iconStr
                     val prefs = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
-                    prefs.edit()
-                        .putString("GOAL_NAME_$userGoalKey", name)
-                        .putFloat("GOAL_AMOUNT_$userGoalKey", amount.toFloat())
-                        .putString("GOAL_ICON_$userGoalKey", iconStr)
-                        .apply()
+                    prefs.edit().putString("GOAL_NAME_$userGoalKey", name).putFloat("GOAL_AMOUNT_$userGoalKey", amount.toFloat()).putString("GOAL_ICON_$userGoalKey", iconStr).apply()
                     showGoalDialog = false
                 }
             )
@@ -218,10 +180,7 @@ fun DashboardScreen(
 
         selectedTxn?.let { txn ->
             TransactionDetailDialog(
-                transaction = txn,
-                categoryName = categoriesMap[txn.categoryId] ?: "Khác",
-                currentBalance = currentBalance,
-                onDismiss = { selectedTxn = null }
+                transaction = txn, categoryName = categoriesMap[txn.categoryId]?.name ?: "Khác", currentBalance = currentBalance, onDismiss = { selectedTxn = null }
             )
         }
     }
@@ -287,18 +246,9 @@ fun SavingGoalCard(goalName: String, goalAmount: Double, goalIconStr: String, cu
 
             Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF4ADE80),
-                    trackColor = Color.White.copy(alpha = 0.2f),
-                    strokeWidth = 6.dp
+                    progress = { progress }, modifier = Modifier.fillMaxSize(), color = Color(0xFF4ADE80), trackColor = Color.White.copy(alpha = 0.2f), strokeWidth = 6.dp
                 )
-                Text(
-                    text = "${(progress * 100).toInt()}%",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
+                Text(text = "${(progress * 100).toInt()}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -329,33 +279,17 @@ fun SavingGoalCard(goalName: String, goalAmount: Double, goalIconStr: String, cu
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoalSetupDialog(
-    currentName: String,
-    currentAmount: Double,
-    currentIcon: String,
-    onDismiss: () -> Unit,
-    onSave: (String, Double, String) -> Unit
+    currentName: String, currentAmount: Double, currentIcon: String, onDismiss: () -> Unit, onSave: (String, Double, String) -> Unit
 ) {
     var name by remember { mutableStateOf(currentName) }
     var amountText by remember { mutableStateOf(if (currentAmount > 0) currentAmount.toLong().toString() else "") }
     var selectedIcon by remember { mutableStateOf(currentIcon.ifEmpty { "Flag" }) }
-
     val iconOptions = listOf("Flag", "Car", "Home", "Flight", "Laptop", "School", "Favorite")
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(12.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier.size(56.dp).background(Color(0xFFEFF6FF), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(12.dp)) {
+            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(modifier = Modifier.size(56.dp).background(Color(0xFFEFF6FF), CircleShape), contentAlignment = Alignment.Center) {
                     Icon(getIconForGoal(selectedIcon), null, tint = Color(0xFF2E5BFF), modifier = Modifier.size(28.dp))
                 }
 
@@ -365,34 +299,9 @@ fun GoalSetupDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Tên mục tiêu (VD: Đóng học phí)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF2E5BFF),
-                        unfocusedBorderColor = Color(0xFFE2E8F0)
-                    )
-                )
-
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Tên mục tiêu (VD: Đóng học phí)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF2E5BFF), unfocusedBorderColor = Color(0xFFE2E8F0)))
                 Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it },
-                    label = { Text("Số tiền cần tiết kiệm (đ)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF2E5BFF),
-                        unfocusedBorderColor = Color(0xFFE2E8F0)
-                    )
-                )
+                OutlinedTextField(value = amountText, onValueChange = { amountText = it }, label = { Text("Số tiền cần tiết kiệm (đ)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, shape = RoundedCornerShape(12.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF2E5BFF), unfocusedBorderColor = Color(0xFFE2E8F0)))
 
                 Spacer(modifier = Modifier.height(20.dp))
                 Text("Chọn biểu tượng:", fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.align(Alignment.Start))
@@ -401,20 +310,8 @@ fun GoalSetupDialog(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     iconOptions.take(6).forEach { iconKey ->
                         val isSelected = selectedIcon == iconKey
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) Color(0xFF2E5BFF) else Color(0xFFF1F5F9))
-                                .clickable { selectedIcon = iconKey },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                getIconForGoal(iconKey),
-                                contentDescription = null,
-                                tint = if (isSelected) Color.White else Color(0xFF64748B),
-                                modifier = Modifier.size(20.dp)
-                            )
+                        Box(modifier = Modifier.size(42.dp).clip(CircleShape).background(if (isSelected) Color(0xFF2E5BFF) else Color(0xFFF1F5F9)).clickable { selectedIcon = iconKey }, contentAlignment = Alignment.Center) {
+                            Icon(getIconForGoal(iconKey), contentDescription = null, tint = if (isSelected) Color.White else Color(0xFF64748B), modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -422,29 +319,9 @@ fun GoalSetupDialog(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
-                    ) {
-                        Text("Hủy", fontWeight = FontWeight.Bold)
-                    }
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))) { Text("Hủy", fontWeight = FontWeight.Bold) }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Button(
-                        onClick = {
-                            val amount = amountText.toDoubleOrNull() ?: 0.0
-                            if (name.isNotBlank() && amount > 0) {
-                                onSave(name, amount, selectedIcon)
-                            }
-                        },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF))
-                    ) {
-                        Text("Lưu lại", fontWeight = FontWeight.Bold)
-                    }
+                    Button(onClick = { val amount = amountText.toDoubleOrNull() ?: 0.0; if (name.isNotBlank() && amount > 0) { onSave(name, amount, selectedIcon) } }, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF))) { Text("Lưu lại", fontWeight = FontWeight.Bold) }
                 }
             }
         }
@@ -494,15 +371,12 @@ fun ProfileBottomNavigationBar(
     onHomeClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
-    onStatisticsClick: () -> Unit = {}, // Thêm sự kiện onClick
+    onStatisticsClick: () -> Unit = {},
     currentScreen: String = "Cá nhân"
 ) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         NavigationBarItem(icon = { Icon(Icons.Default.Home, "Trang chủ") }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = currentScreen == "Trang chủ", onClick = onHomeClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
-
-        // Gắn onStatisticsClick vào nút Thống kê
         NavigationBarItem(icon = { Icon(Icons.Default.BarChart, "Thống kê") }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = currentScreen == "Thống kê", onClick = onStatisticsClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
-
         NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Thêm", tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
         NavigationBarItem(icon = { Icon(Icons.Default.PieChart, "Ngân sách") }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
         NavigationBarItem(icon = { Icon(Icons.Default.Person, "Cá nhân") }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = currentScreen == "Cá nhân", onClick = onProfileClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
@@ -510,20 +384,21 @@ fun ProfileBottomNavigationBar(
 }
 
 @Composable
-fun RecentTransactionsList(transactions: List<Transaction>, categoriesMap: Map<Int, String>, onSeeAllClick: () -> Unit, onTransactionClick: (Transaction) -> Unit) {
+fun RecentTransactionsList(transactions: List<Transaction>, categoriesMap: Map<Int, com.fintrack.project.data.model.Category>, onSeeAllClick: () -> Unit, onTransactionClick: (Transaction) -> Unit) {
     val timeFormatter = SimpleDateFormat("HH:mm - dd/MM", Locale("vi", "VN"))
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)); Text("Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium, modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onSeeAllClick() }.padding(4.dp)) }
         Spacer(modifier = Modifier.height(16.dp))
         transactions.forEach { txn ->
             val isInc = txn.type == TransactionType.INCOME
-            val categoryName = categoriesMap[txn.categoryId] ?: "Khác"
-            val displayIcon = getIconForCategory(categoryName)
+            // LẤY OBJECT CATEGORY RA
+            val category = categoriesMap[txn.categoryId]
+            val categoryName = category?.name ?: "Khác"
+            val displayIcon = resolveCategoryIcon(category?.icon ?: category?.name)
             val displayDescription = if (!txn.description.isNullOrEmpty()) txn.description else categoryName
 
             Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-                    .clickable { onTransactionClick(txn) },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clickable { onTransactionClick(txn) },
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp)
             ) {
