@@ -38,7 +38,7 @@ import java.util.*
 @Composable
 fun TransactionHistoryScreen(
     onBackClick: () -> Unit,
-    onAddTransactionClick: () -> Unit = {}
+    onAddTransactionClick: () -> Unit = {} // Vẫn giữ tham số để tránh lỗi ở MainActivity nhưng không dùng
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -47,14 +47,11 @@ fun TransactionHistoryScreen(
     val dateRangePickerState = rememberDateRangePickerState()
 
     var displayTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
-
-    // ĐÃ SỬA: Đổi String thành Category
     var categoriesMap by remember { mutableStateOf<Map<Int, com.fintrack.project.data.model.Category>>(emptyMap()) }
-
     var currentUserId by remember { mutableIntStateOf(-1) }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
-
     var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
     val timeFormatter = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale("vi", "VN"))
     val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -74,19 +71,15 @@ fun TransactionHistoryScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshTrigger) {
         withContext(Dispatchers.IO) {
             val prefs = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
             currentUserId = prefs.getInt("LOGGED_IN_USER_ID", -1)
 
             if (currentUserId != -1) {
                 val db = FinTrackDatabase.getInstance(context)
-
-                // ĐÃ SỬA: Dùng associateBy để lấy cả Object Category
                 categoriesMap = db.categoryDao().getUserCategories(currentUserId).associateBy { it.id }
-
                 loadTransactions()
-
                 val totalInc = db.transactionDao().getTotalAmount(currentUserId, TransactionType.INCOME) ?: 0.0
                 val totalExp = db.transactionDao().getTotalAmount(currentUserId, TransactionType.EXPENSE) ?: 0.0
                 currentBalance = totalInc - totalExp
@@ -100,8 +93,13 @@ fun TransactionHistoryScreen(
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding())) {
 
+            // Header Background
             Box(
-                modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
             ) {
                 Box(modifier = Modifier.fillMaxWidth().height(80.dp).padding(top = 40.dp), contentAlignment = Alignment.Center) {
                     IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
@@ -111,37 +109,61 @@ fun TransactionHistoryScreen(
                 }
             }
 
+            // Main Content
             Column(modifier = Modifier.fillMaxSize().padding(top = 110.dp, start = 20.dp, end = 20.dp)) {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
+
+                // Box Truy Vấn
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text("Truy vấn giao dịch", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // Hai ô chọn ngày
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             DateBox(text = startDateText, modifier = Modifier.weight(1f)) { showDatePicker = true }
                             DateBox(text = endDateText, modifier = Modifier.weight(1f)) { showDatePicker = true }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // Cụm Nút (Đã xóa nhập thủ công, đưa từ thông báo lên)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(
                                 onClick = {
                                     val sMillis = dateRangePickerState.selectedStartDateMillis
                                     val eMillis = dateRangePickerState.selectedEndDateMillis
-                                    if (sMillis != null && eMillis != null) { scope.launch(Dispatchers.IO) { loadTransactions(sMillis, eMillis) } } else { scope.launch(Dispatchers.IO) { loadTransactions() } }
+                                    if (sMillis != null && eMillis != null) {
+                                        scope.launch(Dispatchers.IO) { loadTransactions(sMillis, eMillis) }
+                                    } else {
+                                        scope.launch(Dispatchers.IO) { loadTransactions() }
+                                    }
                                 },
-                                modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3FBF)), shape = RoundedCornerShape(12.dp)
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A3FBF)),
+                                shape = RoundedCornerShape(12.dp)
                             ) { Text("Truy vấn", fontSize = 14.sp) }
 
-                            Button(
-                                onClick = onAddTransactionClick, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF)), shape = RoundedCornerShape(12.dp)
-                            ) { Text("Nhập giao dịch", fontSize = 14.sp) }
+                            // Nút Import từ thông báo (Sẽ chiếm nửa còn lại)
+                            BankImportButton(
+                                modifier = Modifier.weight(1f),
+                                onImported = {
+                                    refreshTrigger++ // Kích hoạt tải lại danh sách
+                                }
+                            )
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(text = "Hệ thống hỗ trợ truy vấn lịch sử giao dịch trong vòng 1 năm kể từ ngày hiện tại", fontSize = 11.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // Danh sách Transaction
                 if (displayTransactions.isEmpty()) {
                     Column(modifier = Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         Box(modifier = Modifier.size(80.dp).background(Color(0xFFE2E8F0), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(40.dp)) }
@@ -152,8 +174,6 @@ fun TransactionHistoryScreen(
                     LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
                         items(displayTransactions) { txn ->
                             val isInc = txn.type == TransactionType.INCOME
-
-                            // ĐÃ SỬA CHỖ NÀY ĐỂ HIỆN ĐÚNG ICON VÀ TÊN
                             val category = categoriesMap[txn.categoryId]
                             val categoryName = category?.name ?: "Khác"
                             val displayIcon = resolveCategoryIcon(category?.icon ?: category?.name)
@@ -162,7 +182,8 @@ fun TransactionHistoryScreen(
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clickable { selectedTxn = txn },
                                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(16.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                             ) {
                                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Box(modifier = Modifier.size(48.dp).background(if (isInc) Color(0xFFD1FAE5) else Color(0xFFFEE2E2), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) { Icon(displayIcon, null, tint = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444)) }
@@ -180,15 +201,17 @@ fun TransactionHistoryScreen(
             }
         }
 
+        // Popup Chi Tiết
         selectedTxn?.let { txn ->
             TransactionDetailDialog(
                 transaction = txn,
-                categoryName = categoriesMap[txn.categoryId]?.name ?: "Khác", // CẬP NHẬT TRUYỀN TÊN VÀO POPUP
+                categoryName = categoriesMap[txn.categoryId]?.name ?: "Khác",
                 currentBalance = currentBalance,
                 onDismiss = { selectedTxn = null }
             )
         }
 
+        // Popup Date Picker
         if (showDatePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
