@@ -166,8 +166,8 @@ Các đề xuất được chào đón! Vui lòng tạo issue với tag "enhance
 
 ## 📧 Liên Hệ
 
-- **Email**: fintrack@example.com
-- **GitHub Issues**: [FinTrackApp Issues](https://github.com/username/FinTrackApp/issues)
+- **Email**: huynq0307@gmail.com
+- **GitHub Issues**: [ayctyuh](https://github.com/username/FinTrackApp/issues)
 
 ## 📄 License
 
