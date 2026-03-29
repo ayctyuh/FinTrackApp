@@ -42,8 +42,8 @@ fun MonthlyReportScreen(
     categories: List<Category>,
     onBackClick: () -> Unit
 ) {
+    var selectedYear by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var viewingMonth by remember { mutableStateOf<Int?>(null) }
-    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
 
     val yearlySummary by viewModel.yearlySummary.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
@@ -51,24 +51,26 @@ fun MonthlyReportScreen(
     val spentByCategory by viewModel.spentByCategoryMonth.collectAsState()
     val transactionCount by viewModel.transactionCount.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.getYearlySummary(userId, currentYear)
+    LaunchedEffect(selectedYear) {
+        viewModel.getYearlySummary(userId, selectedYear)
     }
 
     if (viewingMonth == null) {
         YearlyReportView(
-            year = currentYear,
+            year = selectedYear,
             summaryList = yearlySummary,
             onBackClick = onBackClick,
+            onPrevYear = { selectedYear-- },
+            onNextYear = { selectedYear++ },
             onMonthClick = {
                 viewingMonth = it
-                viewModel.getBudgetsByMonth(userId, it, currentYear)
+                viewModel.getBudgetsByMonth(userId, it, selectedYear)
             }
         )
     } else {
         MonthlyDetailView(
             month = viewingMonth!!,
-            year = currentYear,
+            year = selectedYear,
             totalLimit = monthlyBudget?.limitAmount ?: 0.0,
             spentByCategory = spentByCategory,
             categoryBudgets = budgets.filter { it.categoryId != null }.associate { it.categoryId!! to it.limitAmount },
@@ -79,12 +81,13 @@ fun MonthlyReportScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YearlyReportView(
     year: Int,
     summaryList: List<MonthSummary>,
     onBackClick: () -> Unit,
+    onPrevYear: () -> Unit,
+    onNextYear: () -> Unit,
     onMonthClick: (Int) -> Unit
 ) {
     val totalSpent = summaryList.sumOf { it.totalSpent }
@@ -92,22 +95,9 @@ fun YearlyReportView(
     val avgSpent = if (activeMonths > 0) totalSpent / activeMonths else 0.0
     val totalSavings = summaryList.sumOf { if (it.totalLimit > it.totalSpent) it.totalLimit - it.totalSpent else 0.0 }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Báo cáo theo năm", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick, modifier = Modifier.padding(start = 8.dp).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
-                        Icon(Icons.Default.ChevronLeft, null, tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF1A3FBF))
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Scaffold(containerColor = Color(0xFFF8FAFC)) { padding ->
+        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
 
-            // BOX NỀN XANH CÓ CHỨA BÓNG MỜ
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -115,19 +105,36 @@ fun YearlyReportView(
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
                     .padding(bottom = 24.dp)
             ) {
-                // 2 quả bóng mờ
                 Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
                 Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
 
-                // Nội dung chữ nằm bên trên bóng mờ
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatBoxSmall("TỔNG CHI", CurrencyUtils.formatMoneyShort(totalSpent), Color(0xFFF59E0B), Modifier.weight(1f))
-                    Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
-                    StatBoxSmall("TB/THÁNG", CurrencyUtils.formatMoneyShort(avgSpent), Color.White, Modifier.weight(1f))
-                    Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
-                    StatBoxSmall("TIẾT KIỆM", "+${CurrencyUtils.formatMoneyShort(totalSavings)}", Color(0xFF10B981), Modifier.weight(1f))
-                    Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
-                    StatBoxSmall("ĐÃ GHI NHẬN", "$activeMonths tháng", Color.White, Modifier.weight(1f))
+                Column(modifier = Modifier.padding(top = padding.calculateTopPadding() + 16.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
+                            Icon(Icons.Default.ChevronLeft, null, tint = Color.White)
+                        }
+                        Text("Báo cáo theo năm", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onPrevYear) { Icon(Icons.Default.ChevronLeft, null, tint = Color.White) }
+                        Text("Năm $year", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        IconButton(onClick = onNextYear) { Icon(Icons.Default.ChevronRight, null, tint = Color.White) }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        StatBoxSmall("TỔNG CHI", CurrencyUtils.formatMoneyShort(totalSpent), Color(0xFFF59E0B), Modifier.weight(1f))
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
+                        StatBoxSmall("TB/THÁNG", CurrencyUtils.formatMoneyShort(avgSpent), Color.White, Modifier.weight(1f))
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
+                        StatBoxSmall("TIẾT KIỆM", "+${CurrencyUtils.formatMoneyShort(totalSavings)}", Color(0xFF10B981), Modifier.weight(1f))
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
+                        StatBoxSmall("ĐÃ GHI NHẬN", "$activeMonths tháng", Color.White, Modifier.weight(1f))
+                    }
                 }
             }
 
@@ -137,22 +144,17 @@ fun YearlyReportView(
                     StatusChipSquare(summaryList.count { it.status == "GAN_VUOT" }, "GẦN VƯỢT", Color(0xFFFEF3C7), Color(0xFFF59E0B), Modifier.weight(1f))
                     StatusChipSquare(summaryList.count { it.status == "VUOT" }, "VƯỢT", Color(0xFFFEE2E2), Color(0xFFEF4444), Modifier.weight(1f))
                 }
-
                 Spacer(modifier = Modifier.height(32.dp))
-                Text("CHỌN THÁNG — $year", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                Text("DANH SÁCH THÁNG", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 Spacer(modifier = Modifier.height(16.dp))
-
                 LazyVerticalGrid(columns = GridCells.Fixed(3), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
-                    items(summaryList) { item ->
-                        MonthGridCard(item, onClick = { onMonthClick(item.month) })
-                    }
+                    items(summaryList) { item -> MonthGridCard(item, onClick = { onMonthClick(item.month) }) }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MonthlyDetailView(
     month: Int,
@@ -170,27 +172,14 @@ fun MonthlyDetailView(
     val progress = progressRatio.coerceIn(0f, 1f)
 
     val (progressColor, statusColor) = when {
-        progressRatio >= 1f -> Color(0xFFEF4444) to Color(0xFFEF4444) // Đỏ (Vượt)
-        progressRatio >= 0.8f -> Color(0xFFF59E0B) to Color(0xFFF59E0B) // Cam (Gần vượt)
-        else -> Color(0xFF4ADE80) to Color(0xFF10B981) // Xanh (Tốt)
+        progressRatio >= 1f -> Color(0xFFEF4444) to Color(0xFFEF4444)
+        progressRatio >= 0.8f -> Color(0xFFF59E0B) to Color(0xFFF59E0B)
+        else -> Color(0xFF4ADE80) to Color(0xFF10B981)
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Báo cáo theo tháng", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.padding(start = 8.dp).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
-                        Icon(Icons.Default.ChevronLeft, null, tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF1A3FBF))
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFFF8FAFC)).verticalScroll(rememberScrollState())) {
+    Scaffold(containerColor = Color(0xFFF8FAFC)) { padding ->
+        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC)).verticalScroll(rememberScrollState())) {
 
-            // BOX NỀN XANH CÓ CHỨA BÓNG MỜ
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -198,13 +187,20 @@ fun MonthlyDetailView(
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
                     .padding(bottom = 24.dp)
             ) {
-                // 2 quả bóng mờ
                 Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
                 Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
 
-                // Nội dung
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 16.dp)) {
-                    Text("Tháng $month - $year", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+                Column(modifier = Modifier.padding(top = padding.calculateTopPadding() + 16.dp)) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
+                            Icon(Icons.Default.ChevronLeft, null, tint = Color.White)
+                        }
+                        Text("Báo cáo chi tiết", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Tháng $month - $year", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         StatBoxSmall("NGÂN SÁCH", CurrencyUtils.formatMoneyShort(totalLimit), Color.White, Modifier.weight(1f))
@@ -235,7 +231,7 @@ fun MonthlyDetailView(
                     ReportRow("Thực tế chi tiêu", CurrencyUtils.formatMoney(totalSpent), statusColor, progress)
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Chênh lệch (tiết kiệm hơn KH)", fontSize = 12.sp, color = Color.Gray)
+                        Text("Chênh lệch (so với KH)", fontSize = 12.sp, color = Color.Gray)
                         val diffColor = if (remaining >= 0) Color(0xFF10B981) else Color.Red
                         Text((if(remaining >= 0) "+" else "") + CurrencyUtils.formatMoney(remaining), fontWeight = FontWeight.Bold, color = diffColor)
                     }
@@ -256,7 +252,9 @@ fun MonthlyDetailView(
                     categories.forEach { category ->
                         val limit = categoryBudgets[category.id] ?: 0.0
                         val spent = spentByCategory[category.id] ?: 0.0
-                        if (limit > 0 || spent > 0) {
+
+                        // ĐÃ SỬA: Chỉ hiển thị danh mục đã ĐƯỢC CẤP HẠN MỨC (limit > 0)
+                        if (limit > 0) {
                             val icon = CategoryUtils.resolveCategoryIcon(category.icon ?: category.name)
                             val color = CategoryUtils.resolveCategoryColor(category.color, Color(0xFFEF4444))
                             CategoryDetailRow(category.name, limit, spent, icon, color)
@@ -284,68 +282,25 @@ fun CategoryDetailRow(name: String, limit: Double, spent: Double, icon: ImageVec
     val progress = progressRatio.coerceIn(0f, 1f)
 
     val (progressColor, spentTextColor) = when {
-        progressRatio >= 1f -> Color(0xFFEF4444) to Color(0xFFEF4444) // Đỏ (Vượt)
-        progressRatio >= 0.8f -> Color(0xFFF59E0B) to Color(0xFFF59E0B) // Cam (Gần vượt)
-        else -> Color(0xFF10B981) to Color(0xFF10B981) // Xanh (Tốt)
+        progressRatio >= 1f -> Color(0xFFEF4444) to Color(0xFFEF4444)
+        progressRatio >= 0.8f -> Color(0xFFF59E0B) to Color(0xFFF59E0B)
+        else -> Color(0xFF10B981) to Color(0xFF10B981)
     }
 
     Column(modifier = Modifier.padding(vertical = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(color.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                name,
-                modifier = Modifier.weight(1f),
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = Color(0xFF1E293B)
-            )
-            Text(
-                CurrencyUtils.formatMoneyShort(limit),
-                modifier = Modifier.width(70.dp),
-                textAlign = TextAlign.End,
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-            Text(
-                CurrencyUtils.formatMoneyShort(spent),
-                modifier = Modifier.width(70.dp),
-                textAlign = TextAlign.End,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = spentTextColor
-            )
+            Text(name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Color(0xFF1E293B))
+            Text(CurrencyUtils.formatMoneyShort(limit), modifier = Modifier.width(70.dp), textAlign = TextAlign.End, fontSize = 12.sp, color = Color.Gray)
+            Text(CurrencyUtils.formatMoneyShort(spent), modifier = Modifier.width(70.dp), textAlign = TextAlign.End, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = spentTextColor)
             val diffColor = if(diff >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
-            Text(
-                (if(diff >= 0) "+" else "") + CurrencyUtils.formatMoneyShort(diff),
-                modifier = Modifier.width(70.dp),
-                textAlign = TextAlign.End,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = diffColor
-            )
+            Text((if(diff >= 0) "+" else "") + CurrencyUtils.formatMoneyShort(diff), modifier = Modifier.width(70.dp), textAlign = TextAlign.End, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = diffColor)
         }
         Spacer(modifier = Modifier.height(10.dp))
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(CircleShape),
-            color = progressColor,
-            trackColor = Color(0xFFF1F5F9),
-            strokeCap = StrokeCap.Round
-        )
+        LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = progressColor, trackColor = Color(0xFFF1F5F9), strokeCap = StrokeCap.Round)
     }
 }
 

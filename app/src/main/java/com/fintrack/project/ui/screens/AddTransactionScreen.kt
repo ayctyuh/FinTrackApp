@@ -1,7 +1,13 @@
 package com.fintrack.project.ui.screens
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.telephony.SmsManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.*
@@ -21,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import com.fintrack.project.data.database.FinTrackDatabase
 import com.fintrack.project.data.model.Notification
 import com.fintrack.project.data.model.Transaction
@@ -70,6 +79,10 @@ fun AddTransactionScreen(
 
     var userPin by remember { mutableStateOf<String?>(null) }
     var showPinDialog by remember { mutableStateOf(false) }
+
+    // --- STATE CHO OTP ---
+    var showOtpDialog by remember { mutableStateOf(false) }
+    var generatedOtp by remember { mutableStateOf("") }
     var userGoalKey by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
@@ -121,7 +134,7 @@ fun AddTransactionScreen(
                             transactionId = newTransactionId.toInt(),
                             title = selectedCategoryName,
                             description = if (isIncome) "Bạn vừa có thêm 1 giao dịch" else description.ifEmpty { "Ghi nhận khoản chi mới" },
-                            message = "Bạn vừa thêm $typeStr ${formatCurrency(amount)} vào danh mục $selectedCategoryName.",
+                            message = "Bạn vừa thêm $typeStr ${com.fintrack.project.utils.CurrencyUtils.formatMoney(amount)} vào danh mục $selectedCategoryName.",
                             type = NotificationType.TRANSACTION,
                             createdAt = System.currentTimeMillis(),
                             isRead = false
@@ -131,26 +144,15 @@ fun AddTransactionScreen(
                     val goalAmount = prefs.getFloat("GOAL_AMOUNT_$userGoalKey", 0f).toDouble()
                     val goalName = prefs.getString("GOAL_NAME_$userGoalKey", "") ?: ""
 
-                    var progressMsg = ""
                     var reached100Percent = false
 
                     if (goalAmount > 0) {
-                        val progress = (newBalance / goalAmount * 100).toInt().coerceAtMost(100)
-                        val remaining = goalAmount - newBalance
-
                         if (newBalance >= goalAmount && oldBalance < goalAmount) {
                             reached100Percent = true
-                        } else if (progress < 100) {
-                            progressMsg = "\n\nTiến độ: Đã đạt $progress% mục tiêu '$goalName'. Cố lên, bạn cần thêm ${formatCurrency(remaining)} nữa!"
-                        } else {
-                            progressMsg = "\n\nBạn đã vượt mục tiêu '$goalName' rồi. Quá tuyệt vời!"
                         }
                     }
 
-
-                    val finalDescription = description.ifEmpty { "Ghi nhận $typeStr mới" }
-
-                    // --- BẮT ĐẦU: KIỂM TRA NGÂN SÁCH 75% & 100% ---
+                    // --- KIỂM TRA NGÂN SÁCH ---
                     if (!isIncome && selectedCategoryId != null) {
                         val cal = Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
                         val txnMonth = cal.get(Calendar.MONTH) + 1
@@ -190,23 +192,22 @@ fun AddTransactionScreen(
                                     Notification(
                                         userId = userId,
                                         title = alertTitle,
-                                        description = "Ngân sách: ${formatCurrency(limit)} | Đã tiêu: ${formatCurrency(spentThisMonth)}",
+                                        description = "Ngân sách: ${com.fintrack.project.utils.CurrencyUtils.formatMoney(limit)} | Đã tiêu: ${com.fintrack.project.utils.CurrencyUtils.formatMoney(spentThisMonth)}",
                                         message = alertMsg,
                                         type = NotificationType.BUDGET_ALERT,
-                                        createdAt = System.currentTimeMillis() + 500, // +0.5s để xếp sau thông báo giao dịch
+                                        createdAt = System.currentTimeMillis() + 500,
                                         isRead = false
                                     )
                                 )
                             }
                         }
                     }
-                    // --- KẾT THÚC: KIỂM TRA NGÂN SÁCH ---
 
                     if (reached100Percent) {
                         db.notificationDao().insertNotification(
                             Notification(
                                 userId = userId, title = "Mục tiêu hoàn thành! 🎉", description = "Bạn đã đạt 100% mục tiêu",
-                                message = "Chúc mừng bạn đã tích lũy đủ ${formatCurrency(goalAmount)} cho mục tiêu '$goalName'. Hãy tự thưởng cho bản thân một tràng pháo tay nhé! \uD83C\uDF8A",
+                                message = "Chúc mừng bạn đã tích lũy đủ ${com.fintrack.project.utils.CurrencyUtils.formatMoney(goalAmount)} cho mục tiêu '$goalName'. Hãy tự thưởng cho bản thân một tràng pháo tay nhé! \uD83C\uDF8A",
                                 type = NotificationType.UPDATE, createdAt = System.currentTimeMillis() + 1000, isRead = false
                             )
                         )
@@ -217,6 +218,42 @@ fun AddTransactionScreen(
         }
     }
 
+    // Gửi SMS thật
+    fun sendOtpSms() {
+        generatedOtp = (100000..999999).random().toString()
+        val phoneToSend = "5554" // Sửa thành số thật nếu chạy trên máy thật
+        try {
+            val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.getSystemService(SmsManager::class.java)
+            } else {
+                SmsManager.getDefault()
+            }
+            smsManager.sendTextMessage(phoneToSend, null, "FinTrack: Ma OTP xac nhan giao dich cua ban la $generatedOtp. Khong chia se ma nay voi bat ky ai.", null, null)
+            showOtpDialog = true
+        } catch (e: Exception) {
+            Toast.makeText(context, "Lỗi gửi SMS: Không thể gửi tin nhắn.", Toast.LENGTH_SHORT).show()
+            showOtpDialog = true
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            sendOtpSms()
+        } else {
+            Toast.makeText(context, "Cần cấp quyền SMS để nhận mã bảo mật!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun checkAndSendOtp() {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+            sendOtpSms()
+        } else {
+            permissionLauncher.launch(Manifest.permission.SEND_SMS)
+        }
+    }
+
     fun onSaveClick() {
         val amount = amountText.toDoubleOrNull() ?: 0.0
         if (amount <= 0 || selectedCategoryId == null) return
@@ -224,7 +261,7 @@ fun AddTransactionScreen(
         if (!userPin.isNullOrEmpty()) {
             showPinDialog = true
         } else {
-            performSaveTransaction()
+            if (amount >= 10000000) checkAndSendOtp() else performSaveTransaction()
         }
     }
 
@@ -250,12 +287,12 @@ fun AddTransactionScreen(
                             Text("#TXN-${System.currentTimeMillis().toString().takeLast(6)}", color = Color.Gray, fontSize = 10.sp)
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        DetailRow("Số tiền", (if (isIncome) "+" else "-") + formatCurrency(amountText.toDoubleOrNull()?:0.0), mainColor, true)
+                        DetailRow("Số tiền", (if (isIncome) "+" else "-") + com.fintrack.project.utils.CurrencyUtils.formatMoney(amountText.toDoubleOrNull()?:0.0), mainColor, true)
                         DetailRow("Danh mục", selectedCategoryName, Color.Black)
                         DetailRow("Ngày giao dịch", formatter.format(Date(selectedDateMillis)), Color.Black)
                         DetailRow("Mô tả", description.ifEmpty { selectedCategoryName }, Color.Black)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
-                        DetailRow("Số dư mới", formatCurrency(newBalance), Color(0xFF2E5BFF), true)
+                        DetailRow("Số dư mới", com.fintrack.project.utils.CurrencyUtils.formatMoney(newBalance), Color(0xFF2E5BFF), true)
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
@@ -346,9 +383,9 @@ fun AddTransactionScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // SỬ DỤNG HÀM TỪ FILE UTILS MÀ KHÔNG CẦN DEFINED LẠI
+                                    // SỬA Ở ĐÂY: Sử dụng hàm resolveLocalIcon siêu xịn
                                     Icon(
-                                        com.fintrack.project.utils.CategoryUtils.resolveCategoryIcon(category.icon ?: category.name),
+                                        resolveLocalIcon(category.icon ?: category.name),
                                         contentDescription = null,
                                         tint = if (isSelected) mainColor else Color.Gray,
                                         modifier = Modifier.size(16.dp)
@@ -383,83 +420,141 @@ fun AddTransactionScreen(
                 ) { DatePicker(state = datePickerState) }
             }
 
+            // --- POPUP NHẬP MÃ PIN ---
             if (showPinDialog) {
                 var inputPin by remember { mutableStateOf("") }
                 fun onPinNumberClick(number: Int) { if (inputPin.length < 4) inputPin += number.toString() }
                 fun onPinBackspaceClick() { if (inputPin.isNotEmpty()) inputPin = inputPin.dropLast(1) }
 
                 Dialog(onDismissRequest = { showPinDialog = false }) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                         Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Xác thực bảo mật", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Vui lòng nhập mã PIN để lưu giao dịch", fontSize = 14.sp, color = Color.Gray, textAlign = TextAlign.Center)
-
+                            Text("Xác thực PIN", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
                             Spacer(modifier = Modifier.height(24.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                for (i in 0 until 4) {
-                                    val isFilled = i < inputPin.length
-                                    Box(modifier = Modifier.size(16.dp).background(if (isFilled) Color(0xFF2E5BFF) else Color(0xFFE2E8F0), CircleShape))
-                                }
+                                repeat(4) { i -> Box(modifier = Modifier.size(16.dp).background(if (i < inputPin.length) Color(0xFF2E5BFF) else Color(0xFFE2E8F0), CircleShape)) }
                             }
-
                             Spacer(modifier = Modifier.height(32.dp))
-
-                            val padModifier = Modifier.size(56.dp).clip(CircleShape)
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    PinNumberButton("1", padModifier) { onPinNumberClick(1) }
-                                    PinNumberButton("2", padModifier) { onPinNumberClick(2) }
-                                    PinNumberButton("3", padModifier) { onPinNumberClick(3) }
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    PinNumberButton("4", padModifier) { onPinNumberClick(4) }
-                                    PinNumberButton("5", padModifier) { onPinNumberClick(5) }
-                                    PinNumberButton("6", padModifier) { onPinNumberClick(6) }
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    PinNumberButton("7", padModifier) { onPinNumberClick(7) }
-                                    PinNumberButton("8", padModifier) { onPinNumberClick(8) }
-                                    PinNumberButton("9", padModifier) { onPinNumberClick(9) }
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = padModifier)
-                                    PinNumberButton("0", padModifier) { onPinNumberClick(0) }
-                                    Box(
-                                        modifier = padModifier.clickable { onPinBackspaceClick() }.background(Color(0xFFF1F5F9)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("⌫", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E293B))
-                                    }
-                                }
-                            }
-
+                            PinPad(onNumberClick = ::onPinNumberClick, onBackspaceClick = ::onPinBackspaceClick)
                             Spacer(modifier = Modifier.height(24.dp))
-
                             Row(modifier = Modifier.fillMaxWidth()) {
-                                OutlinedButton(onClick = { showPinDialog = false }, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp)) { Text("Hủy", color = Color.Gray) }
+                                OutlinedButton(onClick = { showPinDialog = false }, modifier = Modifier.weight(1f).height(48.dp)) { Text("Hủy") }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Button(
                                     onClick = {
                                         if (inputPin == userPin) {
                                             showPinDialog = false
-                                            performSaveTransaction()
+                                            val amount = amountText.toDoubleOrNull() ?: 0.0
+                                            if (amount >= 10000000) checkAndSendOtp() else performSaveTransaction()
                                         } else {
-                                            Toast.makeText(context, "Mã PIN không đúng!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "PIN không đúng!", Toast.LENGTH_SHORT).show()
                                             inputPin = ""
                                         }
                                     },
-                                    modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF)), enabled = inputPin.length == 4
+                                    modifier = Modifier.weight(1f).height(48.dp), enabled = inputPin.length == 4
                                 ) { Text("Xác nhận") }
                             }
                         }
                     }
                 }
+            }
+
+            // --- POPUP NHẬP OTP ---
+            if (showOtpDialog) {
+                var inputOtp by remember { mutableStateOf("") }
+                fun onOtpNumberClick(number: Int) { if (inputOtp.length < 6) inputOtp += number.toString() }
+                fun onOtpBackspaceClick() { if (inputOtp.isNotEmpty()) inputOtp = inputOtp.dropLast(1) }
+
+                Dialog(onDismissRequest = { showOtpDialog = false }) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Shield, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(48.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Xác thực giao dịch lớn", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                            Text("Kiểm tra tin nhắn SMS để lấy mã OTP bảo mật.", fontSize = 13.sp, color = Color.Gray, textAlign = TextAlign.Center)
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                repeat(6) { i ->
+                                    val isFilled = i < inputOtp.length
+                                    Box(
+                                        modifier = Modifier.size(40.dp).border(1.dp, if(isFilled) Color(0xFF2E5BFF) else Color(0xFFE2E8F0), RoundedCornerShape(8.dp)).background(if(isFilled) Color(0xFFEFF6FF) else Color.Transparent),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(if(isFilled) inputOtp[i].toString() else "", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(32.dp))
+                            PinPad(onNumberClick = ::onOtpNumberClick, onBackspaceClick = ::onOtpBackspaceClick, isOtp = true)
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = {
+                                    if (inputOtp == generatedOtp) {
+                                        showOtpDialog = false
+                                        performSaveTransaction()
+                                    } else {
+                                        Toast.makeText(context, "Mã OTP không đúng!", Toast.LENGTH_SHORT).show()
+                                        inputOtp = ""
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF)),
+                                enabled = inputOtp.length == 6
+                            ) {
+                                Text("Xác thực & Lưu", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// BỘ TỪ ĐIỂN DỊCH ICON LOCAL CỰC MẠNH
+fun resolveLocalIcon(iconKey: String?): ImageVector {
+    return when (iconKey) {
+        "ic_food", "Ăn uống" -> Icons.Default.Fastfood
+        "ic_school", "Giáo dục" -> Icons.Default.School
+        "ic_hospital", "Y tế", "Sức khỏe" -> Icons.Default.LocalHospital
+        "ic_movie", "Giải trí" -> Icons.Default.Movie
+        "ic_car", "Giao thông" -> Icons.Default.DirectionsCar
+        "ic_home", "Nhà ở" -> Icons.Default.Home
+        "ic_shopping", "Mua sắm" -> Icons.Default.ShoppingCart
+        "ic_money", "Lương" -> Icons.Default.AttachMoney
+        "ic_gift", "Thưởng" -> Icons.Default.CardGiftcard
+        "ic_store", "Kinh doanh" -> Icons.Default.Store
+        "ic_trending_up", "Đầu tư" -> Icons.AutoMirrored.Filled.TrendingUp
+        "ic_flight" -> Icons.Default.Flight
+        "ic_cafe", "tien an trua" -> Icons.Default.LocalCafe
+        "ic_pets" -> Icons.Default.Pets
+        "ic_child" -> Icons.Default.ChildFriendly
+        "ic_build" -> Icons.Default.Build
+        "ic_computer" -> Icons.Default.Computer
+        "ic_checkroom" -> Icons.Default.Checkroom
+        "ic_spa" -> Icons.Default.Spa
+        else -> Icons.Default.MoreHoriz
+    }
+}
+
+@Composable
+fun PinPad(onNumberClick: (Int) -> Unit, onBackspaceClick: () -> Unit, isOtp: Boolean = false) {
+    val padModifier = Modifier.size(if(isOtp) 48.dp else 56.dp).clip(CircleShape)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9)).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                row.forEach { num -> PinNumberButton(num.toString(), padModifier) { onNumberClick(num) } }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = padModifier)
+            PinNumberButton("0", padModifier) { onNumberClick(0) }
+            Box(modifier = padModifier.clickable { onBackspaceClick() }.background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {
+                Text("⌫", fontSize = 24.sp, fontWeight = FontWeight.Medium)
             }
         }
     }

@@ -101,10 +101,16 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         AppState.SIGNUP -> {
-                            SignupScreen(onSignupSuccess = { backStack.clear(); appState = AppState.LOGIN }, onBackClick = { navigateBack() })
+                            SignupScreen(
+                                onSignupSuccess = { backStack.clear(); appState = AppState.LOGIN },
+                                onLoginClick = { appState = AppState.LOGIN } // <--- GỌI onLoginClick ĐỂ VỀ LOGIN
+                            )
                         }
                         AppState.FORGOT_PASSWORD -> {
-                            ForgotPasswordScreen(onBackClick = { navigateBack() }, onSignupClick = { navigateTo(AppState.SIGNUP) })
+                            ForgotPasswordScreen(
+                                onLoginClick = { appState = AppState.LOGIN }, // <--- GỌI onLoginClick ĐỂ VỀ LOGIN
+                                onSignupClick = { navigateTo(AppState.SIGNUP) }
+                            )
                         }
                         AppState.DASHBOARD -> {
                             DashboardScreen(

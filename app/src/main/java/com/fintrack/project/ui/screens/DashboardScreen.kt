@@ -202,7 +202,7 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unr
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column { Text(text = "Xin chào \uD83D\uDC4B", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp); Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
                 IconButton(onClick = onNotificationClick, modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
-                    BadgedBox(badge = { if (unreadNotiCount > 0) { Badge(containerColor = Color.Red, modifier = Modifier.size(10.dp).offset(x = (-4).dp, y = 4.dp)) } }) {
+                    BadgedBox(badge = { if (unreadNotiCount > 0) { Badge(containerColor = Color.Red, modifier = Modifier.size(10.dp).offset(x = (7).dp, y = (-7).dp)) } }) {
                         Icon(Icons.Outlined.Notifications, contentDescription = "Thông báo", tint = Color.White)
                     }
                 }
