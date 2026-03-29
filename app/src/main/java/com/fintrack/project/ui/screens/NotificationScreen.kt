@@ -18,12 +18,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fintrack.project.data.database.FinTrackDatabase
@@ -50,7 +47,8 @@ fun NotificationScreen(
     var currentUserId by remember { mutableIntStateOf(-1) }
 
     var selectedTxn by remember { mutableStateOf<Transaction?>(null) }
-    // MỚI: 2 Map để phục vụ tra cứu
+    var selectedNotification by remember { mutableStateOf<Notification?>(null) }
+
     var categoryIdMap by remember { mutableStateOf<Map<Int, com.fintrack.project.data.model.Category>>(emptyMap()) }
     var categoryNameMap by remember { mutableStateOf<Map<String, com.fintrack.project.data.model.Category>>(emptyMap()) }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
@@ -66,7 +64,7 @@ fun NotificationScreen(
 
                 val cats = db.categoryDao().getUserCategories(currentUserId)
                 categoryIdMap = cats.associateBy { it.id }
-                categoryNameMap = cats.associateBy { it.name } // Tra cứu ngược để tìm Icon
+                categoryNameMap = cats.associateBy { it.name }
 
                 val totalInc = db.transactionDao().getTotalAmount(currentUserId, TransactionType.INCOME) ?: 0.0
                 val totalExp = db.transactionDao().getTotalAmount(currentUserId, TransactionType.EXPENSE) ?: 0.0
@@ -126,14 +124,22 @@ fun NotificationScreen(
                 ) {
                     items(notifications) { notif ->
                         val isTransaction = notif.type == NotificationType.TRANSACTION
-                        val isIncome = notif.message.contains("Khoản thu")
+
+                        // ĐÃ SỬA: Dùng ignoreCase = true để không bị nhầm Khoản thu và khoản thu
+                        val isIncome = notif.message.contains("thu", ignoreCase = true) || notif.description.contains("Khoản thu", ignoreCase = true)
 
                         val amountMatch = Regex("""([\d.,]+\s*[đ₫])""").find(notif.message)
                         val amountStr = amountMatch?.value ?: ""
 
-                        // SỬA: Lấy icon dựa vào name map
+                        val isBankImport = notif.title.startsWith("Giao dịch từ")
                         val category = categoryNameMap[notif.title]
-                        val displayIcon = if (isTransaction) resolveCategoryIcon(category?.icon ?: category?.name) else getIconDataForType(notif.type).icon
+
+                        // ĐÃ SỬA: Nếu là nhập từ ngân hàng thì gán icon Ngân Hàng
+                        val displayIcon = when {
+                            isBankImport -> Icons.Default.AccountBalance
+                            isTransaction -> resolveCategoryIcon(category?.icon ?: category?.name)
+                            else -> getIconDataForType(notif.type).icon
+                        }
 
                         val iconBgColor = if (isTransaction) {
                             if (isIncome) Color(0xFFD1FAE5) else Color(0xFFFEE2E2)
@@ -164,6 +170,8 @@ fun NotificationScreen(
 
                                         if (notif.transactionId != null) {
                                             selectedTxn = db.transactionDao().getTransactionById(notif.transactionId)
+                                        } else {
+                                            selectedNotification = notif
                                         }
                                     }
                                 },
@@ -220,10 +228,202 @@ fun NotificationScreen(
         selectedTxn?.let { txn ->
             TransactionDetailDialog(
                 transaction = txn,
-                categoryName = categoryIdMap[txn.categoryId]?.name ?: "Khác", // SỬA NỐT CHỖ NÀY
+                categoryName = categoryIdMap[txn.categoryId]?.name ?: "Khác",
                 currentBalance = currentBalance,
                 onDismiss = { selectedTxn = null }
             )
+        }
+
+        selectedNotification?.let { notif ->
+            if (notif.type == NotificationType.BUDGET_ALERT) {
+                BudgetAlertDetailDialog(
+                    notification = notif,
+                    onDismiss = { selectedNotification = null }
+                )
+            } else {
+                NotificationDetailDialog(
+                    notification = notif,
+                    onDismiss = { selectedNotification = null }
+                )
+            }
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────────
+// POPUP CHI TIẾT THÔNG BÁO CHUNG
+// ────────────────────────────────────────────────────────────────
+@Composable
+fun NotificationDetailDialog(
+    notification: Notification,
+    onDismiss: () -> Unit
+) {
+    val iconData = getIconDataForType(notification.type)
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Chi tiết thông báo",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF1E293B)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(iconData.bgColor.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = iconData.icon,
+                            contentDescription = null,
+                            tint = iconData.bgColor,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = notification.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF1E293B),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = notification.message,
+                    fontSize = 15.sp,
+                    color = Color(0xFF64748B),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Schedule, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = formatDate(notification.createdAt),
+                        fontSize = 13.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E5BFF))
+                ) {
+                    Text("Đóng", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BudgetAlertDetailDialog(
+    notification: Notification,
+    onDismiss: () -> Unit
+) {
+    val isOver100 = notification.title.contains("100%")
+    val alertColor = if (isOver100) Color(0xFFEF4444) else Color(0xFFF59E0B)
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(10.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Cảnh báo ngân sách", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = alertColor)
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Box(contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(80.dp).background(alertColor.copy(alpha = 0.1f), CircleShape))
+                    Icon(
+                        imageVector = if (isOver100) Icons.Default.ReportProblem else Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = alertColor,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Text(
+                    text = notification.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color(0xFF1E293B),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Surface(
+                    color = Color(0xFFF8FAFC),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(notification.message, fontSize = 14.sp, color = Color(0xFF64748B), textAlign = TextAlign.Center, lineHeight = 20.sp)
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = notification.description,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = Color(0xFF1E293B),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = alertColor)
+                ) {
+                    Text("Đóng" , color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

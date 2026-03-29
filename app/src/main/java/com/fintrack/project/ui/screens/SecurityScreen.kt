@@ -28,6 +28,8 @@ import kotlinx.coroutines.withContext
 fun SecurityScreen(
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
+    onNavigateToBudget: () -> Unit,
+    onNavigateToStatistics: () -> Unit,
     onNavigateToPinSetup: () -> Unit,
     onNavigateToTerms: () -> Unit,
     onAddClick: () -> Unit
@@ -45,7 +47,7 @@ fun SecurityScreen(
     }
 
     Scaffold(
-        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick) },
+        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick, onBudgetClick = onNavigateToBudget, onStatisticsClick = onNavigateToStatistics) },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->

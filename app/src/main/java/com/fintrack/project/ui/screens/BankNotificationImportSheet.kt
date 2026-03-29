@@ -268,7 +268,11 @@ fun BankNotificationImportSheet(
                                             createdAt     = System.currentTimeMillis()
                                         )
                                     )
-
+                                    // GỌI HÀM KIỂM TRA NGÂN SÁCH Ở ĐÂY
+                                    if (txn.type == TransactionType.EXPENSE) {
+                                        val catName = chosenCategoryList.find { it.id == catId }?.name ?: "Danh mục"
+                                        checkBudgetAlert(context, db, currentUserId, catId, txn.amount, txn.timestamp, catName)
+                                    }
                                     // Xóa khỏi pending
                                     BankNotificationListenerService.removePendingTransaction(context, index)
 
@@ -326,6 +330,10 @@ fun BankNotificationImportSheet(
                                         createdAt     = System.currentTimeMillis()
                                     )
                                 )
+                                if (txn.type == TransactionType.EXPENSE) {
+                                    val catName = chosenCats.find { it.id == catId }?.name ?: "Danh mục"
+                                    checkBudgetAlert(context, db, currentUserId, catId, txn.amount, txn.timestamp, catName)
+                                }
                             }
                             BankNotificationListenerService.clearPendingTransactions(context)
                             withContext(Dispatchers.Main) {
@@ -552,4 +560,63 @@ fun NotificationPermissionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 private fun formatCurrencyVN(amount: Double): String {
     val formatter = NumberFormat.getNumberInstance(Locale("vi", "VN"))
     return "${formatter.format(amount.toLong())} đ"
+}
+
+// --- HÀM KIỂM TRA NGÂN SÁCH ---
+private suspend fun checkBudgetAlert(
+    context: Context,
+    db: FinTrackDatabase,
+    userId: Int,
+    categoryId: Int,
+    amount: Double,
+    transactionDate: Long,
+    categoryName: String
+) {
+    val cal = Calendar.getInstance().apply { timeInMillis = transactionDate }
+    val txnMonth = cal.get(Calendar.MONTH) + 1
+    val txnYear = cal.get(Calendar.YEAR)
+
+    val budgets = db.budgetDao().getBudgetsByMonth(userId, txnMonth, txnYear)
+    val budget = budgets.find { it.categoryId == categoryId }
+
+    if (budget != null && budget.limitAmount > 0) {
+        val limit = budget.limitAmount
+        val allTxns = db.transactionDao().getAllTransactionsByUser(userId)
+
+        val spentThisMonth = allTxns.filter {
+            it.type == TransactionType.EXPENSE &&
+                    it.categoryId == categoryId &&
+                    Calendar.getInstance().apply { timeInMillis = it.transactionDate }.get(Calendar.MONTH) + 1 == txnMonth &&
+                    Calendar.getInstance().apply { timeInMillis = it.transactionDate }.get(Calendar.YEAR) == txnYear
+        }.sumOf { it.amount }
+
+        val oldSpent = spentThisMonth - amount
+        val oldPct = oldSpent / limit
+        val newPct = spentThisMonth / limit
+
+        var alertTitle = ""
+        var alertMsg = ""
+
+        if (oldPct < 1.0 && newPct >= 1.0) {
+            alertTitle = "Vượt 100% ngân sách!"
+            alertMsg = "Danh mục '$categoryName' đã VƯỢT giới hạn chi tiêu của tháng $txnMonth."
+        } else if (oldPct < 0.75 && newPct >= 0.75) {
+            alertTitle = "Cảnh báo chi tiêu (75%)"
+            alertMsg = "Danh mục '$categoryName' đã tiêu ĐẠT mức 75% ngân sách tháng $txnMonth."
+        }
+
+        if (alertTitle.isNotEmpty()) {
+            db.notificationDao().insertNotification(
+                Notification(
+                    userId = userId,
+                    title = alertTitle,
+                    description = "Ngân sách: ${formatCurrencyVN(limit)} | Đã tiêu: ${formatCurrencyVN(spentThisMonth)}",
+                    message = alertMsg,
+                    type = NotificationType.BUDGET_ALERT,
+                    createdAt = System.currentTimeMillis() + 500,
+                    isRead = false
+                )
+            )
+        }
+    }
 }

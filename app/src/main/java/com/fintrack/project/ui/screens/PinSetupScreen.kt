@@ -32,6 +32,11 @@ enum class PinStep { CHECK_OLD, ENTER_NEW, CONFIRM_NEW }
 @Composable
 fun PinSetupScreen(
     onBackClick: () -> Unit,
+    onNavigateToBudget: () -> Unit,
+    onNavigateToStatistics: () -> Unit,
+    onNavigateToHome: () -> Unit = {},     // <-- THÊM
+    onAddClick: () -> Unit = {},           // <-- THÊM
+    onNavigateToProfile: () -> Unit = {},  // <-- THÊM
     onPinSaved: () -> Unit
 ) {
     val context = LocalContext.current
@@ -136,7 +141,18 @@ fun PinSetupScreen(
         }
     }
 
-    Scaffold(containerColor = Color(0xFFF8FAFC)) { paddingValues ->
+    Scaffold(containerColor = Color(0xFFF8FAFC),
+        bottomBar = {
+            ProfileBottomNavigationBar(
+                onHomeClick = onNavigateToHome,
+                onAddClick = onAddClick,
+                onProfileClick = onNavigateToProfile,
+                onStatisticsClick = onNavigateToStatistics,
+                onBudgetClick = onNavigateToBudget,
+                currentScreen = "Cá nhân" // Giữ sáng icon Cá nhân vì cài PIN nằm trong mục này
+            )
+        }
+    ) { paddingValues ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             return@Scaffold

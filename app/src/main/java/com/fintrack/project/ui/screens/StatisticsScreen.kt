@@ -58,6 +58,7 @@ data class CategoryDataPoint(val categoryName: String, val expense: Float)
 fun StatisticsScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToBudget: () -> Unit,
     onAddClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -217,6 +218,7 @@ fun StatisticsScreen(
                 onHomeClick = onNavigateToHome,
                 onAddClick = onAddClick,
                 currentScreen = "Thống kê",
+                onBudgetClick = onNavigateToBudget,
                 onProfileClick = onNavigateToProfile,
                 onStatisticsClick = {}
             )
@@ -236,6 +238,8 @@ fun StatisticsScreen(
                     .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
             ) {
+                Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
+                Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

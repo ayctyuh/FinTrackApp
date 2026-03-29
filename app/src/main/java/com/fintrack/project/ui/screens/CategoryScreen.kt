@@ -38,6 +38,8 @@ fun CategoryScreen(
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
     onAddClick: () -> Unit,
+    onNavigateToBudget: () -> Unit,
+    onNavigateToStatistics: () -> Unit,
     onNavigateToAddCategory: () -> Unit,
     onCategoryClick: (Int) -> Unit
 ) {
@@ -57,7 +59,7 @@ fun CategoryScreen(
     }
 
     Scaffold(
-        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick, onProfileClick = {}, currentScreen = "Cá nhân") },
+        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick, onProfileClick = {}, currentScreen = "Cá nhân", onBudgetClick = onNavigateToBudget, onStatisticsClick = onNavigateToStatistics) },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->

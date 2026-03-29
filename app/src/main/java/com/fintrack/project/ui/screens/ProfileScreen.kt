@@ -35,6 +35,7 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToEdit: () -> Unit,
     onNavigateToSecurity: () -> Unit,
+    onNavigateToBudget: () -> Unit,
     onAddClick: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToCategory: () -> Unit, // BỔ SUNG THAM SỐ NÀY
@@ -58,6 +59,7 @@ fun ProfileScreen(
                 onHomeClick = onNavigateToHome,
                 onAddClick = onAddClick,
                 onProfileClick = {}, // Đang ở Profile rồi
+                onBudgetClick = onNavigateToBudget,
                 onStatisticsClick = onStatisticsClick, // TRUYỀN HÀM CHUYỂN TRANG VÀO ĐÂY
                 currentScreen = "Cá nhân"
             )
@@ -89,7 +91,7 @@ fun ProfileScreen(
                         Text("Cá nhân", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Box(contentAlignment = Alignment.BottomEnd) {
                         Box(

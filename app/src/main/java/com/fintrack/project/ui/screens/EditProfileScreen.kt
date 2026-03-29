@@ -35,6 +35,8 @@ import kotlinx.coroutines.withContext
 fun EditProfileScreen(
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
+    onNavigateToBudget: () -> Unit,
+    onNavigateToStatistics: () -> Unit,
     onAddClick: () -> Unit // <--- ĐÃ THÊM THAM SỐ NÀY
 ) {
     val context = LocalContext.current
@@ -68,7 +70,7 @@ fun EditProfileScreen(
 
     Scaffold(
         // ĐÃ TRUYỀN onAddClick VÀO NAVBAR BÊN DƯỚI
-        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick) },
+        bottomBar = { ProfileBottomNavigationBar(onHomeClick = onHomeClick, onAddClick = onAddClick, onProfileClick = {}, onBudgetClick = onNavigateToBudget, onStatisticsClick = onNavigateToStatistics)},
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->

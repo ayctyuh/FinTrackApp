@@ -32,6 +32,8 @@ class TransactionViewModel(
     /**
      * Lấy tất cả giao dịch của người dùng
      */
+    private val _spentByCategory = MutableStateFlow<Map<Int, Double>>(emptyMap())
+    val spentByCategory = _spentByCategory.asStateFlow()
     fun getTransactions(userId: Int) {
         viewModelScope.launch {
             try {
@@ -41,6 +43,10 @@ class TransactionViewModel(
                 _transactions.value = txns
                 _filteredTransactions.value = txns
                 updateTotals(userId)
+                _spentByCategory.value = txns
+                    .filter { it.type == TransactionType.EXPENSE && it.categoryId != null }
+                    .groupBy { it.categoryId!! }
+                    .mapValues { (_, list) -> list.sumOf { it.amount } }
             } catch (e: Exception) {
                 setError(e.message ?: "Lỗi không xác định")
             } finally {

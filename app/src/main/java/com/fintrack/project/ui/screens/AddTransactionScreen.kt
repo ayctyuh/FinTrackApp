@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -113,6 +114,20 @@ fun AddTransactionScreen(
                     val totalExpNew = db.transactionDao().getTotalAmount(userId, TransactionType.EXPENSE) ?: 0.0
                     newBalance = totalIncNew - totalExpNew
 
+                    val typeStr = if (isIncome) "Khoản thu" else "Khoản chi"
+                    db.notificationDao().insertNotification(
+                        Notification(
+                            userId = userId,
+                            transactionId = newTransactionId.toInt(),
+                            title = selectedCategoryName,
+                            description = if (isIncome) "Bạn vừa có thêm 1 giao dịch" else description.ifEmpty { "Ghi nhận khoản chi mới" },
+                            message = "Bạn vừa thêm $typeStr ${formatCurrency(amount)} vào danh mục $selectedCategoryName.",
+                            type = NotificationType.TRANSACTION,
+                            createdAt = System.currentTimeMillis(),
+                            isRead = false
+                        )
+                    )
+
                     val goalAmount = prefs.getFloat("GOAL_AMOUNT_$userGoalKey", 0f).toDouble()
                     val goalName = prefs.getString("GOAL_NAME_$userGoalKey", "") ?: ""
 
@@ -132,16 +147,60 @@ fun AddTransactionScreen(
                         }
                     }
 
-                    val typeStr = if (isIncome) "Khoản thu" else "Khoản chi"
+
                     val finalDescription = description.ifEmpty { "Ghi nhận $typeStr mới" }
 
-                    db.notificationDao().insertNotification(
-                        Notification(
-                            userId = userId, transactionId = newTransactionId.toInt(), title = selectedCategoryName, description = finalDescription,
-                            message = "Bạn vừa thêm $typeStr ${formatCurrency(amount)} vào danh mục $selectedCategoryName.$progressMsg",
-                            type = NotificationType.TRANSACTION, createdAt = System.currentTimeMillis(), isRead = false
-                        )
-                    )
+                    // --- BẮT ĐẦU: KIỂM TRA NGÂN SÁCH 75% & 100% ---
+                    if (!isIncome && selectedCategoryId != null) {
+                        val cal = Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+                        val txnMonth = cal.get(Calendar.MONTH) + 1
+                        val txnYear = cal.get(Calendar.YEAR)
+
+                        val budgets = db.budgetDao().getBudgetsByMonth(userId, txnMonth, txnYear)
+                        val budget = budgets.find { it.categoryId == selectedCategoryId }
+
+                        if (budget != null && budget.limitAmount > 0) {
+                            val limit = budget.limitAmount
+                            val allTxns = db.transactionDao().getAllTransactionsByUser(userId)
+
+                            val spentThisMonth = allTxns.filter {
+                                it.type == TransactionType.EXPENSE &&
+                                        it.categoryId == selectedCategoryId &&
+                                        Calendar.getInstance().apply { timeInMillis = it.transactionDate }.get(Calendar.MONTH) + 1 == txnMonth &&
+                                        Calendar.getInstance().apply { timeInMillis = it.transactionDate }.get(Calendar.YEAR) == txnYear
+                            }.sumOf { it.amount }
+
+                            val oldSpent = spentThisMonth - amount
+                            val oldPct = oldSpent / limit
+                            val newPct = spentThisMonth / limit
+
+                            var alertTitle = ""
+                            var alertMsg = ""
+
+                            if (oldPct < 1.0 && newPct >= 1.0) {
+                                alertTitle = "Vượt 100% ngân sách!"
+                                alertMsg = "Danh mục '$selectedCategoryName' đã VƯỢT giới hạn chi tiêu của tháng $txnMonth/$txnYear."
+                            } else if (oldPct < 0.75 && newPct >= 0.75) {
+                                alertTitle = "Cảnh báo chi tiêu (75%)"
+                                alertMsg = "Danh mục '$selectedCategoryName' đã tiêu ĐẠT mức 75% ngân sách tháng $txnMonth/$txnYear."
+                            }
+
+                            if (alertTitle.isNotEmpty()) {
+                                db.notificationDao().insertNotification(
+                                    Notification(
+                                        userId = userId,
+                                        title = alertTitle,
+                                        description = "Ngân sách: ${formatCurrency(limit)} | Đã tiêu: ${formatCurrency(spentThisMonth)}",
+                                        message = alertMsg,
+                                        type = NotificationType.BUDGET_ALERT,
+                                        createdAt = System.currentTimeMillis() + 500, // +0.5s để xếp sau thông báo giao dịch
+                                        isRead = false
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    // --- KẾT THÚC: KIỂM TRA NGÂN SÁCH ---
 
                     if (reached100Percent) {
                         db.notificationDao().insertNotification(
@@ -215,7 +274,17 @@ fun AddTransactionScreen(
     } else {
         Scaffold(containerColor = Color(0xFFF8FAFC)) { paddingValues ->
             Column(modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding()).verticalScroll(rememberScrollState())) {
-                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).background(Color(0xFF2E5BFF))) {
+
+                // HEADER CÓ BÓNG MỜ VÀ GRADIENT
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                        .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
+                ) {
+                    Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
+                    Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
+
                     Column(modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)) {
                         Box(modifier = Modifier.fillMaxWidth()) {
                             IconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) { Icon(Icons.Default.ChevronLeft, null, tint = Color.White) }
@@ -277,8 +346,9 @@ fun AddTransactionScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
+                                    // SỬ DỤNG HÀM TỪ FILE UTILS MÀ KHÔNG CẦN DEFINED LẠI
                                     Icon(
-                                        resolveCategoryIcon(category.icon ?: category.name),
+                                        com.fintrack.project.utils.CategoryUtils.resolveCategoryIcon(category.icon ?: category.name),
                                         contentDescription = null,
                                         tint = if (isSelected) mainColor else Color.Gray,
                                         modifier = Modifier.size(16.dp)

@@ -48,6 +48,7 @@ fun DashboardScreen(
     onNotificationClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSeeAllClick: () -> Unit = {},
+    onBudgetClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
     onStatisticsClick: () -> Unit = {}
 ) {
@@ -142,7 +143,7 @@ fun DashboardScreen(
 
     Scaffold(
         bottomBar = {
-            ProfileBottomNavigationBar(onHomeClick = {}, onAddClick = onAddClick, onProfileClick = onProfileClick, onStatisticsClick = onStatisticsClick, currentScreen = "Trang chủ")
+            ProfileBottomNavigationBar(onHomeClick = {}, onAddClick = onAddClick, onProfileClick = onProfileClick, onBudgetClick = onBudgetClick, onStatisticsClick = onStatisticsClick, currentScreen = "Trang chủ")
         },
         containerColor = Color(0xFFF8FAFC),
         contentWindowInsets = WindowInsets(0.dp)
@@ -206,16 +207,16 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unr
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(modifier = Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp)).padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Số dư hiện tại", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp) }
-                    Text(formatCurrency(balance), color = Color(0xFF4ADE80), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Số dư hiện tại", color = Color(0xFF64748B), fontSize = 12.sp) }
+                    Text(formatCurrency(balance), color = Color(0xFF10B981), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
-                Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.White.copy(alpha = 0.3f)))
-                Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.MoneyOff, null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Chi tiêu tháng", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp) }
-                    Text(formatCurrency(monthlyExpense), color = Color(0xFFF87171), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color(0xFFF1F5F9)))
+                Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.MoneyOff, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Chi tiêu tháng", color = Color(0xFF64748B), fontSize = 12.sp) }
+                    Text(formatCurrency(monthlyExpense), color = Color(0xFFEF4444), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -371,14 +372,16 @@ fun ProfileBottomNavigationBar(
     onHomeClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onBudgetClick: () -> Unit = {},
     onStatisticsClick: () -> Unit = {},
     currentScreen: String = "Cá nhân"
 ) {
     NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         NavigationBarItem(icon = { Icon(Icons.Default.Home, "Trang chủ") }, label = { Text("Trang chủ", fontSize = 10.sp) }, selected = currentScreen == "Trang chủ", onClick = onHomeClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
         NavigationBarItem(icon = { Icon(Icons.Default.BarChart, "Thống kê") }, label = { Text("Thống kê", fontSize = 10.sp) }, selected = currentScreen == "Thống kê", onClick = onStatisticsClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
-        NavigationBarItem(icon = { Box(modifier = Modifier.size(40.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Thêm", tint = Color.White) } }, label = { Text("Thêm", fontSize = 10.sp) }, selected = false, onClick = onAddClick)
-        NavigationBarItem(icon = { Icon(Icons.Default.PieChart, "Ngân sách") }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = false, onClick = { })
+        NavigationBarItem(icon = { Box(modifier = Modifier.offset(y = -6.dp).size(50.dp).background(Color(0xFF2E5BFF), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, null, tint = Color.White) } }, label = null //{ Text("Thêm", fontSize = 10.sp) }//
+            , selected = false, onClick = onAddClick)
+        NavigationBarItem(icon = { Icon(Icons.Default.PieChart, "Ngân sách") }, label = { Text("Ngân sách", fontSize = 10.sp) }, selected = currentScreen == "Ngân sách", onClick = onBudgetClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
         NavigationBarItem(icon = { Icon(Icons.Default.Person, "Cá nhân") }, label = { Text("Cá nhân", fontSize = 10.sp) }, selected = currentScreen == "Cá nhân", onClick = onProfileClick, colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF2E5BFF), selectedTextColor = Color(0xFF2E5BFF), indicatorColor = Color(0xFFE0E7FF)))
     }
 }

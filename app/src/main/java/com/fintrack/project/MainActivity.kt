@@ -12,6 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.fintrack.project.ui.screens.*
 import com.fintrack.project.ui.theme.FinTrackProjectTheme
+import com.fintrack.project.di.ServiceLocator
+import com.fintrack.project.presentation.viewmodel.BudgetViewModel
+import com.fintrack.project.presentation.viewmodel.TransactionViewModel
+import com.fintrack.project.data.model.Category
+import com.fintrack.project.data.model.CategoryType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,6 +30,20 @@ class MainActivity : ComponentActivity() {
         setContent {
             FinTrackProjectTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    val budgetViewModel = remember {
+                        BudgetViewModel(
+                            ServiceLocator.getBudgetRepository(),
+                            ServiceLocator.getTransactionRepository()
+                        )
+                    }
+                    val transactionViewModel = remember {
+                        TransactionViewModel(
+                            ServiceLocator.getTransactionRepository(),
+                            ServiceLocator.getCategoryRepository()
+                        )
+                    }
+                    val categories = remember { mutableStateListOf<Category>() }
+
                     var appState by remember { mutableStateOf<AppState>(AppState.SPLASH) }
                     val backStack = remember { mutableStateListOf<AppState>() }
 
@@ -89,6 +110,7 @@ class MainActivity : ComponentActivity() {
                             DashboardScreen(
                                 onNotificationClick = { navigateTo(AppState.NOTIFICATIONS) },
                                 onProfileClick = { navigateTo(AppState.PROFILE) },
+                                onBudgetClick  = { navigateTo(AppState.BUDGET) },
                                 onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) },
                                 onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
                                 onStatisticsClick = { navigateTo(AppState.STATISTICS) }
@@ -99,6 +121,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
                                 onNavigateToEdit = { navigateTo(AppState.EDIT_PROFILE) },
                                 onNavigateToSecurity = { navigateTo(AppState.SECURITY) },
+                                onNavigateToBudget = { navigateTo(AppState.BUDGET) },
                                 onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
                                 onLogout = {
                                     sharedPreferences.edit().remove("LOGGED_IN_USER_ID").apply()
@@ -106,11 +129,12 @@ class MainActivity : ComponentActivity() {
                                     appState = AppState.LOGIN
                                 },
                                 onNavigateToCategory = { navigateTo(AppState.CATEGORY_LIST) },
-                                onStatisticsClick = { navigateTo(AppState.STATISTICS) } // ĐÃ FIX LỖI THIẾU THAM SỐ
+                                onStatisticsClick = { navigateTo(AppState.STATISTICS) }
                             )
                         }
                         AppState.EDIT_PROFILE -> {
-                            EditProfileScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                            EditProfileScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onNavigateToBudget = {navigateTo(AppState.BUDGET)},
+                                onNavigateToStatistics = { navigateTo(AppState.STATISTICS) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
                         }
                         AppState.NOTIFICATIONS -> { NotificationScreen(onBackClick = { navigateBack() }) }
                         AppState.TRANSACTION_HISTORY -> { TransactionHistoryScreen(onBackClick = { navigateBack() }) }
@@ -118,20 +142,85 @@ class MainActivity : ComponentActivity() {
                             AddTransactionScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) })
                         }
                         AppState.SECURITY -> {
-                            SecurityScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onNavigateToPinSetup = { navigateTo(AppState.PIN_SETUP) }, onNavigateToTerms = { navigateTo(AppState.TERMS_OF_SERVICE) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                            SecurityScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onNavigateToPinSetup = { navigateTo(AppState.PIN_SETUP) }, onNavigateToTerms = { navigateTo(AppState.TERMS_OF_SERVICE) }, onNavigateToBudget = { navigateTo(AppState.BUDGET)}, onNavigateToStatistics = { navigateTo(AppState.STATISTICS)}, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
                         }
                         AppState.TERMS_OF_SERVICE -> { TermsOfServiceScreen(onBackClick = { navigateBack() }) }
-                        AppState.PIN_SETUP -> { PinSetupScreen(onBackClick = { navigateBack() }, onPinSaved = { navigateBack() }) }
-                        AppState.STATISTICS -> {
-                            StatisticsScreen(onNavigateToHome = { navigateTo(AppState.DASHBOARD) }, onNavigateToProfile = { navigateTo(AppState.PROFILE) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                        AppState.PIN_SETUP -> {
+                            PinSetupScreen(
+                                onBackClick = { navigateBack() },
+                                onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
+                                onNavigateToProfile = { navigateTo(AppState.PROFILE) },
+                                onNavigateToBudget = { navigateTo(AppState.BUDGET) },
+                                onNavigateToStatistics = { navigateTo(AppState.STATISTICS) },
+                                onPinSaved = { navigateBack() }
+                            )
                         }
+                        AppState.STATISTICS -> {
+                            StatisticsScreen(onNavigateToHome = { navigateTo(AppState.DASHBOARD) }, onNavigateToProfile = { navigateTo(AppState.PROFILE) }, onNavigateToBudget = { navigateTo(AppState.BUDGET) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                        }
+                        AppState.BUDGET -> {
+                            val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+                            LaunchedEffect(userId, budgetViewModel.budgets.collectAsState().value) {
+                                if (userId != -1) {
+                                    withContext(Dispatchers.IO) {
+                                        val loaded = ServiceLocator.getCategoryRepository().getCategoriesByType(userId, CategoryType.EXPENSE)
+                                        withContext(Dispatchers.Main) {
+                                            categories.clear()
+                                            categories.addAll(loaded)
+                                        }
+                                    }
+                                }
+                            }
+
+                            BudgetScreen(
+                                userId          = userId,
+                                viewModel       = budgetViewModel,
+                                spentByCategory = budgetViewModel.spentByCategoryMonth.collectAsState().value,
+                                categories      = categories,
+                                onNavigateTo    = { index ->
+                                    when (index) {
+                                        0 -> navigateTo(AppState.DASHBOARD)
+                                        1 -> navigateTo(AppState.STATISTICS)
+                                        2 -> navigateTo(AppState.ADD_TRANSACTION)
+                                        4 -> navigateTo(AppState.PROFILE)
+                                    }
+                                },
+                                onSeeReport     = { navigateTo(AppState.MONTHLY_REPORT) }
+                            )
+                        }
+                        AppState.MONTHLY_REPORT -> {
+                            val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+                            
+                            LaunchedEffect(userId) {
+                                if (userId != -1) {
+                                    withContext(Dispatchers.IO) {
+                                        val loaded = ServiceLocator.getCategoryRepository().getCategoriesByType(userId, CategoryType.EXPENSE)
+                                        withContext(Dispatchers.Main) {
+                                            categories.clear()
+                                            categories.addAll(loaded)
+                                        }
+                                    }
+                                }
+                            }
+
+                            MonthlyReportScreen(
+                                userId = userId,
+                                viewModel = budgetViewModel,
+                                categories = categories,
+                                onBackClick = { navigateBack() }
+                            )
+                        }
+
                         AppState.CATEGORY_LIST -> {
                             CategoryScreen(
                                 onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, onNavigateToAddCategory = { navigateTo(AppState.ADD_CATEGORY) },
                                 onCategoryClick = { categoryId ->
                                     selectedCategoryIdToEdit = categoryId
                                     navigateTo(AppState.EDIT_CATEGORY)
-                                }
+                                },
+                                onNavigateToBudget = { navigateTo(AppState.BUDGET) },
+                                onNavigateToStatistics = { navigateTo(AppState.STATISTICS) },
                             )
                         }
                         AppState.ADD_CATEGORY -> { AddCategoryScreen(onBackClick = { navigateBack() }) }
@@ -146,6 +235,6 @@ class MainActivity : ComponentActivity() {
 enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
     NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE,
-    TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS,
+    TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS, BUDGET, MONTHLY_REPORT,
     CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY
 }
