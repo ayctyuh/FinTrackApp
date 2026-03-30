@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                     val backStack = remember { mutableStateListOf<AppState>() }
 
                     var selectedCategoryIdToEdit by remember { mutableIntStateOf(-1) }
+                    var selectedTransactionIdToEdit by remember { mutableIntStateOf(-1) }
 
                     fun navigateTo(next: AppState) {
                         backStack.add(appState)
@@ -119,7 +120,11 @@ class MainActivity : ComponentActivity() {
                                 onBudgetClick  = { navigateTo(AppState.BUDGET) },
                                 onSeeAllClick = { navigateTo(AppState.TRANSACTION_HISTORY) },
                                 onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
-                                onStatisticsClick = { navigateTo(AppState.STATISTICS) }
+                                onStatisticsClick = { navigateTo(AppState.STATISTICS) },
+                                onEditTransactionClick = { transactionId ->
+                                    selectedTransactionIdToEdit = transactionId
+                                    navigateTo(AppState.EDIT_TRANSACTION)
+                                }
                             )
                         }
                         AppState.PROFILE -> {
@@ -143,9 +148,20 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToStatistics = { navigateTo(AppState.STATISTICS) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
                         }
                         AppState.NOTIFICATIONS -> { NotificationScreen(onBackClick = { navigateBack() }) }
-                        AppState.TRANSACTION_HISTORY -> { TransactionHistoryScreen(onBackClick = { navigateBack() }) }
+                        AppState.TRANSACTION_HISTORY -> { TransactionHistoryScreen(onBackClick = { navigateBack() }, onEditTransactionClick = { transactionId ->
+                            selectedTransactionIdToEdit = transactionId
+                            navigateTo(AppState.EDIT_TRANSACTION)
+                        })
+                        }
                         AppState.ADD_TRANSACTION -> {
                             AddTransactionScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) })
+                        }
+                        AppState.EDIT_TRANSACTION -> {
+                            EditTransactionScreen(
+                                transactionId = selectedTransactionIdToEdit,
+                                onBackClick = { navigateBack() },
+                                onSaveSuccess = { navigateBack() }
+                            )
                         }
                         AppState.SECURITY -> {
                             SecurityScreen(onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onNavigateToPinSetup = { navigateTo(AppState.PIN_SETUP) }, onNavigateToTerms = { navigateTo(AppState.TERMS_OF_SERVICE) }, onNavigateToBudget = { navigateTo(AppState.BUDGET)}, onNavigateToStatistics = { navigateTo(AppState.STATISTICS)}, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
@@ -163,7 +179,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         AppState.STATISTICS -> {
-                            StatisticsScreen(onNavigateToHome = { navigateTo(AppState.DASHBOARD) }, onNavigateToProfile = { navigateTo(AppState.PROFILE) }, onNavigateToBudget = { navigateTo(AppState.BUDGET) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) })
+                            StatisticsScreen(onNavigateToHome = { navigateTo(AppState.DASHBOARD) }, onNavigateToProfile = { navigateTo(AppState.PROFILE) }, onNavigateToBudget = { navigateTo(AppState.BUDGET) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, onNavigateToReport = { navigateTo(AppState.MONTHLY_REPORT)})
                         }
                         AppState.BUDGET -> {
                             val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
@@ -192,7 +208,7 @@ class MainActivity : ComponentActivity() {
                                         4 -> navigateTo(AppState.PROFILE)
                                     }
                                 },
-                                onSeeReport     = { navigateTo(AppState.MONTHLY_REPORT) }
+                                onSeeReportClick = { navigateTo(AppState.MONTHLY_REPORT) }
                             )
                         }
                         AppState.MONTHLY_REPORT -> {
@@ -242,5 +258,5 @@ enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
     NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE,
     TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS, BUDGET, MONTHLY_REPORT,
-    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY
+    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY, EDIT_TRANSACTION
 }

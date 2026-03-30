@@ -1,8 +1,8 @@
 package com.fintrack.project.ui.screens
 
 import android.content.Context
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -50,9 +50,11 @@ fun DashboardScreen(
     onSeeAllClick: () -> Unit = {},
     onBudgetClick: () -> Unit = {},
     onAddClick: () -> Unit = {},
-    onStatisticsClick: () -> Unit = {}
+    onStatisticsClick: () -> Unit = {},
+    onEditTransactionClick: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var username by remember { mutableStateOf("Đang tải...") }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
@@ -60,6 +62,7 @@ fun DashboardScreen(
     var recentTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
     var unreadNotiCount by remember { mutableIntStateOf(0) }
     var currentUserId by remember { mutableIntStateOf(-1) }
+    var refreshKey by remember { mutableIntStateOf(0) }
 
     // SỬA: Map lưu trữ toàn bộ Object Category thay vì chỉ tên
     var categoriesMap by remember { mutableStateOf<Map<Int, com.fintrack.project.data.model.Category>>(emptyMap()) }
@@ -71,7 +74,7 @@ fun DashboardScreen(
     var goalIconStr by remember { mutableStateOf("Flag") }
     var showGoalDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(refreshKey) {
         withContext(Dispatchers.IO) {
             val sharedPreferences = context.getSharedPreferences("FinTrackPrefs", Context.MODE_PRIVATE)
             val loggedInUserId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
@@ -181,7 +184,28 @@ fun DashboardScreen(
 
         selectedTxn?.let { txn ->
             TransactionDetailDialog(
-                transaction = txn, categoryName = categoriesMap[txn.categoryId]?.name ?: "Khác", currentBalance = currentBalance, onDismiss = { selectedTxn = null }
+                transaction = txn,
+                categoryName = categoriesMap[txn.categoryId]?.name ?: "Khác",
+                currentBalance = currentBalance,
+                onDismiss = { selectedTxn = null },
+                onEdit = { transactionToEdit ->
+                    // Đóng Popup và mở màn hình Sửa giao dịch
+                    selectedTxn = null
+                    onEditTransactionClick(transactionToEdit.id)
+                },
+                onDelete = { transactionToDelete ->
+                    // Đóng Popup và gọi lệnh xóa vào DB
+                    selectedTxn = null
+                    coroutineScope.launch(Dispatchers.IO) {
+                        val db = FinTrackDatabase.getInstance(context)
+                        db.transactionDao().deleteTransaction(transactionToDelete)
+
+                        // Xóa xong thì +1 refreshKey để App tự tính lại Số dư và Chi tiêu tháng
+                        withContext(Dispatchers.Main) {
+                            refreshKey++
+                        }
+                    }
+                }
             )
         }
     }
@@ -420,19 +444,53 @@ fun RecentTransactionsList(transactions: List<Transaction>, categoriesMap: Map<I
 }
 
 @Composable
-fun TransactionDetailDialog(transaction: Transaction, categoryName: String, currentBalance: Double, onDismiss: () -> Unit) {
+fun TransactionDetailDialog(transaction: Transaction, categoryName: String, currentBalance: Double, onDismiss: () -> Unit, onEdit: (Transaction) -> Unit = {},   onDelete: (Transaction) -> Unit = {}) {
     val isInc = transaction.type == TransactionType.INCOME
     val formatter = SimpleDateFormat("dd 'Tháng' MM, yyyy", Locale("vi", "VN"))
     val mainColor = if (isInc) Color(0xFF10B981) else Color(0xFFEF4444)
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    if (showConfirmDelete) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDelete = false },
+            title = { Text("Xóa giao dịch", fontWeight = FontWeight.Bold) },
+            text = { Text("Bạn có chắc chắn muốn xóa giao dịch này? Số dư và các báo cáo sẽ được cập nhật lại.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmDelete = false
+                    onDelete(transaction) // Gọi lệnh xóa
+                }) { Text("Xóa", color = Color.Red, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDelete = false }) { Text("Hủy", color = Color.Gray) }
+            },
+            containerColor = Color.White
+        )
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(8.dp)) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("CHI TIẾT GIAO DỊCH", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text("#TXN-${transaction.id.toString().padStart(5, '0')}", color = Color.Gray, fontSize = 10.sp)
+                // ─── THÊM 2 NÚT SỬA VÀ XÓA Ở ĐÂY ───
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("CHI TIẾT GIAO DỊCH", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Nút Sửa
+                        IconButton(onClick = { onEdit(transaction) }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Edit, "Sửa", tint = Color.Gray, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Nút Xóa
+                        IconButton(onClick = { showConfirmDelete = true }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Delete, "Xóa", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text("#TXN-${transaction.id.toString().padStart(5, '0')}", color = Color.Gray, fontSize = 10.sp)
+                Spacer(modifier = Modifier.height(16.dp))
+
                 DetailRow("Số tiền", (if (isInc) "+" else "-") + formatCurrency(transaction.amount), mainColor, true)
                 DetailRow("Danh mục", categoryName, Color.Black)
                 DetailRow("Ngày giao dịch", formatter.format(Date(transaction.transactionDate)), Color.Black)

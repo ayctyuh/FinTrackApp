@@ -59,7 +59,8 @@ fun StatisticsScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToBudget: () -> Unit,
-    onAddClick: () -> Unit
+    onAddClick: () -> Unit,
+    onNavigateToReport: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var currentUserId by remember { mutableIntStateOf(-1) }
@@ -361,7 +362,7 @@ fun StatisticsScreen(
                     shape = RoundedCornerShape(20.dp),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 4.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
                                 Text(
@@ -409,6 +410,17 @@ fun StatisticsScreen(
                                 ChartType.TREND -> TrendLineChart(chartData)
                                 ChartType.CATEGORY -> CategoryBarChart(categoryData)
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                        TextButton(
+                            onClick = onNavigateToReport,
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            Text("Xem báo cáo chi tiết", color = Color(0xFF2E5BFF), fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF2E5BFF), modifier = Modifier.size(18.dp))
                         }
                     }
                 }
