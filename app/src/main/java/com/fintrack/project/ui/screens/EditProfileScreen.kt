@@ -94,6 +94,7 @@ fun EditProfileScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Spacer(modifier = Modifier.height(5.dp))
                     // TOOLBAR (Cố định 40dp)
                     Box(modifier = Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
                         IconButton(
@@ -102,7 +103,7 @@ fun EditProfileScreen(
                         ) {
                             Icon(Icons.Default.ChevronLeft, "Quay lại", tint = Color.White)
                         }
-                        Text("Chỉnh sửa hồ sơ", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text("Chỉnh sửa hồ sơ", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))

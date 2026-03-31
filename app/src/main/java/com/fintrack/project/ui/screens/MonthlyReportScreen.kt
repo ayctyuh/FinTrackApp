@@ -228,21 +228,6 @@ fun MonthlyDetailView(
                 }
             }
 
-//            Spacer(modifier = Modifier.height(16.dp))
-//            Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-//                Column(modifier = Modifier.padding(16.dp)) {
-//                    Text("Tổng ngân sách tháng", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-//                    Spacer(modifier = Modifier.height(16.dp))
-//                    ReportRow("Kế hoạch dự kiến", CurrencyUtils.formatMoney(totalLimit), Color(0xFF3B82F6), 1.0f)
-//                    ReportRow("Thực tế chi tiêu", CurrencyUtils.formatMoney(totalSpent), statusColor, progress)
-//                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
-//                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-//                        Text("Chênh lệch (so với KH)", fontSize = 12.sp, color = Color.Gray)
-//                        val diffColor = if (remaining >= 0) Color(0xFF10B981) else Color.Red
-//                        Text((if(remaining >= 0) "+" else "") + CurrencyUtils.formatMoney(remaining), fontWeight = FontWeight.Bold, color = diffColor)
-//                    }
-//                }
-//            }
 
             Text("CHI TIẾT BÁO CÁO", modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 12.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
 
@@ -273,7 +258,7 @@ fun MonthlyDetailView(
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Color(0xFFF1F5F9))
                     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Tổng cộng", modifier = Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,)
+                        Text(text = "Tổng chi", modifier = Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,)
                         Column(horizontalAlignment = Alignment.End) {
                             val isOverTotal = totalSpent > totalLimit && totalLimit > 0
                             Text(text = CurrencyUtils.formatMoney(totalSpent), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = if (isOverTotal) Color(0xFFEF4444) else Color(0xFF10B981))
@@ -290,9 +275,9 @@ fun MonthlyDetailView(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Info, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(text = "Khoản chi phát sinh", fontSize = 15.sp, color = Color(0xFF92400E))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(Icons.Default.Info, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(14.dp))
                             }
                             Text(text = CurrencyUtils.formatMoney(unplannedSpent), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF92400E))
                         }
@@ -305,7 +290,7 @@ fun MonthlyDetailView(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = if (isNegative) "Khoản vượt ngân sách" else "Số dư còn lại", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (isNegative) Color(0xFFB91C1C) else Color(0xFF15803D))
+                        Text(text = if (isNegative) "Khoản vượt ngân sách" else "Ngân sách còn lại", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (isNegative) Color(0xFFB91C1C) else Color(0xFF15803D))
                         Text(text = CurrencyUtils.formatMoney(if (isNegative) -remaining else remaining), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isNegative) Color(0xFFEF4444) else Color(0xFF10B981))
                     }
                 }

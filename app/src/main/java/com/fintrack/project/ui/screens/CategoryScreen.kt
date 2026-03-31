@@ -82,6 +82,7 @@ fun CategoryScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Spacer(modifier = Modifier.height(5.dp))
                     Box(modifier = Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
                         IconButton(
                             onClick = onBackClick,
@@ -89,7 +90,7 @@ fun CategoryScreen(
                         ) {
                             Icon(Icons.Default.ChevronLeft, "Quay lại", tint = Color.White)
                         }
-                        Text("Danh mục", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text("Danh mục", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -3,9 +3,11 @@ package com.fintrack.project.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -44,7 +46,8 @@ fun ChangePasswordScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(bottom = paddingValues.calculateBottomPadding())
+                .verticalScroll(rememberScrollState())
         ) {
             // --- HEADER GRADIENT ĐỒNG BỘ ---
             Box(
@@ -52,32 +55,30 @@ fun ChangePasswordScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))
-                    .padding(top = 16.dp, bottom = 40.dp)
+                    .padding(top = 16.dp, bottom = 10.dp)
             ) {
                 Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
                 Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
 
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    IconButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.background(Color.White.copy(alpha = 0.2f), CircleShape)
-                    ) {
-                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                Column(modifier = Modifier.padding(top = paddingValues.calculateTopPadding())) {
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        // Nút Back bên trái
+                        IconButton(
+                            onClick = onBackClick,
+                            modifier = Modifier.align(Alignment.CenterStart).size(36.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
+                        ) {
+                            Icon(Icons.Default.ChevronLeft, contentDescription = "Quay lại", tint = Color.White)
+                        }
+                        // Tiêu đề chính giữa
+                        Text(text = "Đổi mật khẩu", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
                     }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = "Đổi mật khẩu",
-                        color = Color.White,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Hãy sử dụng mật khẩu mạnh để bảo vệ tài khoản",
                         color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(start = 8.dp)
+                        fontSize = 13.sp,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
                     )
                 }
             }

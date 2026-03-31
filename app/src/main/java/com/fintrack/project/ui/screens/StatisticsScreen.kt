@@ -244,16 +244,16 @@ fun StatisticsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp, start = 24.dp, end = 24.dp),
+                        .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 22.dp, bottom = 24.dp, start = 24.dp, end = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Thống kê", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("Thống kê", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(22.dp)
                     ) {
                         Row(modifier = Modifier.padding(16.dp)) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -264,7 +264,7 @@ fun StatisticsScreen(
                                 }
                                 Text(formatCurrency(totalBalance), color = Color(0xFF10B981), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             }
-                            Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color(0xFFE2E8F0)))
+                            Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color(0xFFF1F5F9)))
                             Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.MoneyOff, null, tint = Color.Gray, modifier = Modifier.size(14.dp))

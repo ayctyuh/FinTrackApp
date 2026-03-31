@@ -85,14 +85,14 @@ fun ProfileScreen(
                 Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
 
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
-                        Text("Cá nhân", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Box(modifier = Modifier.fillMaxWidth().height(50.dp), contentAlignment = Alignment.Center) {
+                        Text("Cá nhân", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Box(contentAlignment = Alignment.BottomEnd) {
                         Box(

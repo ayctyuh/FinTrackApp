@@ -55,6 +55,7 @@ fun DashboardScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    var monthlyBudgetLimit by remember { mutableDoubleStateOf(0.0) }
 
     var username by remember { mutableStateOf("Đang tải...") }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
@@ -85,6 +86,7 @@ fun DashboardScreen(
                 val userDao = db.userDao()
                 val transactionDao = db.transactionDao()
                 val categoryDao = db.categoryDao()
+                val budgetDao = db.budgetDao()
 
                 val user = userDao.getUserById(loggedInUserId)
                 username = user?.username ?: "Người dùng mới"
@@ -119,7 +121,16 @@ fun DashboardScreen(
                 val totalExp = transactionDao.getTotalAmount(loggedInUserId, TransactionType.EXPENSE) ?: 0.0
                 currentBalance = totalInc - totalExp
                 monthlyExpense = transactionDao.getTotalAmountByDateRange(loggedInUserId, TransactionType.EXPENSE, monthStart.timeInMillis, monthEnd.timeInMillis) ?: 0.0
+                try {
+                    val currentMonthVal = calendar.get(Calendar.MONTH) + 1
+                    val currentYearVal = calendar.get(Calendar.YEAR)
 
+                    val monthlyBudget = budgetDao.getMonthlyBudget(loggedInUserId, currentMonthVal, currentYearVal)
+
+                    monthlyBudgetLimit = monthlyBudget?.limitAmount ?: 0.0
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
                 if (goalAmount > 0) {
                     val lastReminderTime = sharedPreferences.getLong("LAST_GOAL_REMINDER_$loggedInUserId", 0L)
                     val currentTime = System.currentTimeMillis()
@@ -159,8 +170,8 @@ fun DashboardScreen(
                 SavingGoalCard(goalName = goalName, goalAmount = goalAmount, goalIconStr = goalIconStr, currentBalance = currentBalance, onClick = { showGoalDialog = true })
 
                 Spacer(modifier = Modifier.height(24.dp))
-                TimeFilterTabs()
-                Spacer(modifier = Modifier.height(24.dp))
+                BudgetProgressCard(spent = monthlyExpense, limit = monthlyBudgetLimit, onClick = onBudgetClick)
+                Spacer(modifier = Modifier.height(16.dp))
                 if (recentTransactions.isEmpty()) {
                     RecentTransactionsEmptyState(onSeeAllClick = onSeeAllClick)
                 } else {
@@ -222,9 +233,11 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unr
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).background(Brush.verticalGradient(colors = listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))) {
         Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
         Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
-        Column(modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 16.dp, bottom = 32.dp, start = 24.dp, end = 24.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column { Text(text = "Xin chào \uD83D\uDC4B", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp); Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+
+        Column(modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 22.dp, bottom = 24.dp, start = 24.dp, end = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(modifier = Modifier.fillMaxWidth().height(50.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column { Text(text = "Xin chào \uD83D\uDC4B", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp); Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
                 IconButton(onClick = onNotificationClick, modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
                     BadgedBox(badge = { if (unreadNotiCount > 0) { Badge(containerColor = Color.Red, modifier = Modifier.size(10.dp).offset(x = (7).dp, y = (-7).dp)) } }) {
                         Icon(Icons.Outlined.Notifications, contentDescription = "Thông báo", tint = Color.White)
@@ -232,7 +245,7 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unr
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
-            Row(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(22.dp)).padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Số dư hiện tại", color = Color(0xFF64748B), fontSize = 12.sp) }
                     Text(formatCurrency(balance), color = Color(0xFF10B981), fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -366,14 +379,38 @@ fun getIconForGoal(name: String): ImageVector {
 }
 
 @Composable
-fun TimeFilterTabs() {
-    var selectedTab by remember { mutableStateOf(2) }
-    Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFE2E8F0), RoundedCornerShape(12.dp)).padding(4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        listOf("Ngày", "Tuần", "Tháng").forEachIndexed { index, title ->
-            val isSelected = selectedTab == index
-            Box(modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (isSelected) Color(0xFF2E5BFF) else Color.Transparent).clickable { selectedTab = index }.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                Text(text = title, color = if (isSelected) Color.White else Color(0xFF64748B), fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+fun BudgetProgressCard(
+    spent: Double,
+    limit: Double,
+    onClick: () -> Unit
+) {
+    // Tính toán phần trăm tiến độ
+    val progressRatio = if (limit > 0) (spent / limit).toFloat() else 0f
+    val progress = progressRatio.coerceIn(0f, 1f)
+
+    // Đổi màu thanh tùy theo mức độ chi tiêu
+    val progressColor = when {
+        progressRatio >= 1f -> Color(0xFFEF4444) // Đỏ (Đã vượt)
+        progressRatio >= 0.8f -> Color(0xFFF59E0B) // Cam (Gần vượt)
+        else -> Color(0xFF10B981) // Xanh lá (An toàn)
+    }
+
+    Card(modifier = Modifier.fillMaxWidth().clickable { onClick() }, colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Column {
+                    Text("Chi tiêu tháng", fontSize = 12.sp, color = Color.Gray)
+                    Text(formatCurrency(spent), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Ngân sách", fontSize = 12.sp, color = Color.Gray)
+                    Text(text = if (limit > 0) formatCurrency(limit) else "Chưa đặt", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
+                }
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape), color = progressColor, trackColor = Color(0xFFF1F5F9), strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
         }
     }
 }
@@ -383,7 +420,7 @@ fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { Text("Giao dịch gần đây", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B)); Text(text = "Xem tất cả →", fontSize = 12.sp, color = Color(0xFF3B82F6), fontWeight = FontWeight.Medium, modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable { onSeeAllClick() }.padding(4.dp)) }
         Spacer(modifier = Modifier.height(24.dp))
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.ReceiptLong, null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(64.dp))
             Spacer(modifier = Modifier.height(16.dp)); Text("Chưa có giao dịch nào", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
             Spacer(modifier = Modifier.height(8.dp)); Text("Hãy thêm khoản thu hoặc chi đầu tiên\nđể bắt đầu quản lý tài chính nhé!", fontSize = 14.sp, color = Color(0xFF94A3B8), textAlign = TextAlign.Center)

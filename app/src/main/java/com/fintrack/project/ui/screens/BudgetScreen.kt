@@ -385,6 +385,7 @@ private fun BudgetTopBar(
         Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
 
         Column {
+            Spacer(modifier = Modifier.height(5.dp))
             // ── Tiêu đề + nút back/add ──────────────────────────
             CenterAlignedTopAppBar(
                 title = {
@@ -394,7 +395,7 @@ private fun BudgetTopBar(
                     if (showBackButton) {
                         IconButton(
                             onClick = onBackClick,
-                            modifier = Modifier.size(36.dp).padding(start = 8.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
+                            modifier = Modifier.padding(start = 12.dp).size(36.dp).padding(start = 4.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
                             Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = "Quay lại", tint = Color.White)
                         }
                     }
@@ -502,9 +503,9 @@ private fun BudgetMainView(
         if (untrackedCategories.isNotEmpty()) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 11.dp).offset(y = (-10).dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7ED)), // Cam nhạt
-                    border = BorderStroke(1.dp, Color(0xFFFED7AA)),
+                    //border = BorderStroke(1.dp, Color(0xFFFED7AA)),
                     shape = RoundedCornerShape(20.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
