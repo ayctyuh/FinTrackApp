@@ -38,8 +38,9 @@ fun ProfileScreen(
     onNavigateToBudget: () -> Unit,
     onAddClick: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToCategory: () -> Unit, // BỔ SUNG THAM SỐ NÀY
-    onStatisticsClick: () -> Unit // BỔ SUNG THAM SỐ NÀY ĐỂ NAVBAR CÓ THỂ CHUYỂN TRANG
+    onNavigateToCategory: () -> Unit,
+    onStatisticsClick: () -> Unit,
+    onNavigateToChangePassword: () -> Unit
 ) {
     val context = LocalContext.current
     var user by remember { mutableStateOf<User?>(null) }
@@ -131,6 +132,8 @@ fun ProfileScreen(
                         ProfileMenuItemColor(Icons.Outlined.Category, Color(0xFFEF4444), "Danh mục", "Thêm danh mục chi tiêu", onNavigateToCategory)
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
                         ProfileMenuItemColor(Icons.Outlined.Security, Color(0xFF10B981), "Bảo mật", "PIN, điều khoản", onNavigateToSecurity)
+                        HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
+                        ProfileMenuItemColor(icon = Icons.Outlined.Lock, iconBgColor = Color(0xFF6366F1), title = "Đổi mật khẩu", sub = "Thay đổi mật khẩu đăng nhập", onClick = onNavigateToChangePassword)
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))
                         ProfileMenuItemColor(Icons.Outlined.Settings, Color(0xFFF59E0B), "Cài đặt", "Ngôn ngữ, thông báo, giao diện") { }
                         HorizontalDivider(modifier = Modifier.padding(start = 76.dp), color = Color(0xFFF1F5F9))

@@ -16,8 +16,9 @@ data class MonthSummary(
     val month: Int,
     val totalLimit: Double,
     val totalSpent: Double,
-    val status: String // "DAT", "GAN_VUOT", "VUOT", "CHUA_DEN"
-)
+    val status: String, // "DAT", "GAN_VUOT", "VUOT", "CHUA_DEN"
+    val totalIncome: Double = 0.0,
+    )
 
 class BudgetViewModel(
     private val budgetRepository: BudgetRepository,
@@ -113,24 +114,25 @@ class BudgetViewModel(
 
                 for (m in 1..12) {
                     if (year > currentYear || (year == currentYear && m > currentMonth)) {
-                        summary.add(MonthSummary(m, 0.0, 0.0, "CHUA_DEN"))
+                        summary.add(MonthSummary(m, 0.0, 0.0, "CHUA_DEN", 0.0))
                         continue
                     }
-
+                    val startTs = getStartOfMonthTimestamp(m, year)
+                    val endTs = getEndOfMonthTimestamp(m, year)
                     val limit = budgetRepository.getMonthlyBudget(userId, m, year)?.limitAmount ?: 0.0
                     val spent = transactionRepository.getTotalAmountByDateRange(
-                        userId, TransactionType.EXPENSE,
-                        getStartOfMonthTimestamp(m, year),
-                        getEndOfMonthTimestamp(m, year)
+                        userId, TransactionType.EXPENSE, startTs, endTs
                     )
-
+                    val income = transactionRepository.getTotalAmountByDateRange(
+                        userId, TransactionType.INCOME, startTs, endTs
+                    )
                     val status = when {
                         limit <= 0 -> "DAT"
                         spent > limit -> "VUOT"
                         spent > limit * 0.8 -> "GAN_VUOT"
                         else -> "DAT"
                     }
-                    summary.add(MonthSummary(m, limit, spent, status))
+                    summary.add(MonthSummary(m, limit, spent, status, income))
                 }
                 _yearlySummary.value = summary
             } catch (e: Exception) {

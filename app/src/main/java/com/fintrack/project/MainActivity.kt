@@ -2,6 +2,7 @@ package com.fintrack.project
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -15,7 +16,9 @@ import com.fintrack.project.ui.theme.FinTrackProjectTheme
 import com.fintrack.project.di.ServiceLocator
 import com.fintrack.project.presentation.viewmodel.BudgetViewModel
 import com.fintrack.project.presentation.viewmodel.TransactionViewModel
+import com.fintrack.project.presentation.viewmodel.ChangePasswordViewModel
 import com.fintrack.project.data.model.Category
+import com.fintrack.project.data.database.FinTrackDatabase
 import com.fintrack.project.data.model.CategoryType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -140,7 +143,31 @@ class MainActivity : ComponentActivity() {
                                     appState = AppState.LOGIN
                                 },
                                 onNavigateToCategory = { navigateTo(AppState.CATEGORY_LIST) },
-                                onStatisticsClick = { navigateTo(AppState.STATISTICS) }
+                                onStatisticsClick = { navigateTo(AppState.STATISTICS) },
+                                onNavigateToChangePassword = { navigateTo(AppState.CHANGE_PASSWORD) }
+                            )
+                        }
+                        AppState.CHANGE_PASSWORD -> {
+                            val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+                            val db = FinTrackDatabase.getInstance(this)
+                            val cpViewModel = remember { ChangePasswordViewModel(db.userDao()) }
+
+                            ChangePasswordScreen(
+                                onBackClick = { navigateBack() },
+                                onConfirmClick = { oldPass, newPass -> // Tên này phải khớp với Screen ở Bước 1
+                                    cpViewModel.changePassword(
+                                        userId = userId,
+                                        oldPass = oldPass,
+                                        newPass = newPass,
+                                        onSuccess = {
+                                            Toast.makeText(this, "Đổi mật khẩu thành công!", Toast.LENGTH_SHORT).show()
+                                            navigateBack()
+                                        },
+                                        onError = { error ->
+                                            Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                }
                             )
                         }
                         AppState.EDIT_PROFILE -> {
@@ -258,5 +285,5 @@ enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
     NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE,
     TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS, BUDGET, MONTHLY_REPORT,
-    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY, EDIT_TRANSACTION
+    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY, EDIT_TRANSACTION, CHANGE_PASSWORD
 }

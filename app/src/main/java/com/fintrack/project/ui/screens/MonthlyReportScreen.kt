@@ -96,7 +96,7 @@ fun YearlyReportView(
     val activeMonths = summaryList.count { it.totalSpent > 0 || it.totalLimit > 0 }
     val avgSpent = if (activeMonths > 0) totalSpent / activeMonths else 0.0
     val totalSavings = summaryList.sumOf { if (it.totalLimit > it.totalSpent) it.totalLimit - it.totalSpent else 0.0 }
-
+    val totalIncome = summaryList.sumOf { it.totalIncome }
     Scaffold(containerColor = Color(0xFFF8FAFC)) { padding ->
         Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
 
@@ -129,13 +129,13 @@ fun YearlyReportView(
                     Spacer(modifier = Modifier.height(15.dp))
 
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        StatBoxSmall("THU NHẬP", CurrencyUtils.formatMoneyShort(totalIncome), Color.White, Modifier.weight(1f)) // Thêm Thu nhập (Màu xanh dương nhạt)
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
                         StatBoxSmall("TỔNG CHI", CurrencyUtils.formatMoneyShort(totalSpent), Color(0xFFFDE047), Modifier.weight(1f))
                         Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
                         StatBoxSmall("TB/THÁNG", CurrencyUtils.formatMoneyShort(avgSpent), Color.White, Modifier.weight(1f))
                         Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
                         StatBoxSmall("TIẾT KIỆM", "+${CurrencyUtils.formatMoneyShort(totalSavings)}", Color(0xFF10B981), Modifier.weight(1f))
-                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
-                        StatBoxSmall("ĐÃ GHI NHẬN", "$activeMonths tháng", Color.White, Modifier.weight(1f))
                     }
                 }
             }
