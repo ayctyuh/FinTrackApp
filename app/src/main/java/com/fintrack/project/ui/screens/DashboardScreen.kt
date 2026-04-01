@@ -60,6 +60,7 @@ fun DashboardScreen(
     var username by remember { mutableStateOf("Đang tải...") }
     var currentBalance by remember { mutableDoubleStateOf(0.0) }
     var monthlyExpense by remember { mutableDoubleStateOf(0.0) }
+    var monthlyIncome by remember { mutableDoubleStateOf(0.0) }
     var recentTransactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
     var unreadNotiCount by remember { mutableIntStateOf(0) }
     var currentUserId by remember { mutableIntStateOf(-1) }
@@ -121,6 +122,7 @@ fun DashboardScreen(
                 val totalExp = transactionDao.getTotalAmount(loggedInUserId, TransactionType.EXPENSE) ?: 0.0
                 currentBalance = totalInc - totalExp
                 monthlyExpense = transactionDao.getTotalAmountByDateRange(loggedInUserId, TransactionType.EXPENSE, monthStart.timeInMillis, monthEnd.timeInMillis) ?: 0.0
+                monthlyIncome = transactionDao.getTotalAmountByDateRange(loggedInUserId, TransactionType.INCOME, monthStart.timeInMillis, monthEnd.timeInMillis) ?: 0.0
                 try {
                     val currentMonthVal = calendar.get(Calendar.MONTH) + 1
                     val currentYearVal = calendar.get(Calendar.YEAR)
@@ -163,7 +165,7 @@ fun DashboardScreen(
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize().padding(bottom = paddingValues.calculateBottomPadding()).verticalScroll(rememberScrollState())) {
-            HeaderSection(username = username, balance = currentBalance, monthlyExpense = monthlyExpense, unreadNotiCount = unreadNotiCount, onNotificationClick = onNotificationClick)
+            HeaderSection(username = username, balance = currentBalance, monthlyIncome = monthlyIncome, unreadNotiCount = unreadNotiCount, onNotificationClick = onNotificationClick)
             Spacer(modifier = Modifier.height(24.dp))
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
 
@@ -229,7 +231,7 @@ fun formatCurrency(amount: Double): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unreadNotiCount: Int, onNotificationClick: () -> Unit) {
+fun HeaderSection(username: String, balance: Double, monthlyIncome: Double, unreadNotiCount: Int, onNotificationClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).background(Brush.verticalGradient(colors = listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))) {
         Box(modifier = Modifier.size(160.dp).align(Alignment.TopEnd).offset(x = 40.dp, y = (-40).dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
         Box(modifier = Modifier.size(100.dp).align(Alignment.BottomStart).offset(x = (-30).dp, y = 20.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
@@ -237,7 +239,7 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unr
         Column(modifier = Modifier.padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 22.dp, bottom = 24.dp, start = 24.dp, end = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally) {
             Row(modifier = Modifier.fillMaxWidth().height(50.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column { Text(text = "Xin chào \uD83D\uDC4B", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp); Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+                Column { Text(text = "Xin chào 👋", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp); Text(text = username, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
                 IconButton(onClick = onNotificationClick, modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)) {
                     BadgedBox(badge = { if (unreadNotiCount > 0) { Badge(containerColor = Color.Red, modifier = Modifier.size(10.dp).offset(x = (7).dp, y = (-7).dp)) } }) {
                         Icon(Icons.Outlined.Notifications, contentDescription = "Thông báo", tint = Color.White)
@@ -248,12 +250,12 @@ fun HeaderSection(username: String, balance: Double, monthlyExpense: Double, unr
             Row(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(22.dp)).padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AccountBalanceWallet, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Số dư hiện tại", color = Color(0xFF64748B), fontSize = 12.sp) }
-                    Text(formatCurrency(balance), color = Color(0xFF10B981), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(formatCurrency(balance), color = Color(0xFF10B981), fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
                 Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color(0xFFF1F5F9)))
                 Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.MoneyOff, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Chi tiêu tháng", color = Color(0xFF64748B), fontSize = 12.sp) }
-                    Text(formatCurrency(monthlyExpense), color = Color(0xFFEF4444), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.TrendingUp, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp)); Spacer(modifier = Modifier.width(4.dp)); Text("Thu nhập tháng", color = Color(0xFF64748B), fontSize = 12.sp) }
+                    Text("+" + formatCurrency(monthlyIncome), color = Color(0xFF2E5BFF), fontSize = 20.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
         }

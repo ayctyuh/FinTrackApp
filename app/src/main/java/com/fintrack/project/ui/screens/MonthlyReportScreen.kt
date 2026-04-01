@@ -254,18 +254,15 @@ fun MonthlyDetailView(
                             Text("Thực nhận", modifier = Modifier.width(100.dp), textAlign = TextAlign.End, fontSize = 13.sp, color = Color.Gray)
                         }
 
-                        incomeCategories.forEach { category ->
-                            val amount = incomeByCategory[category.id] ?: 0.0
+                        incomeByCategory.forEach { (catId, amount) ->
                             if (amount > 0) {
-                                val icon = CategoryUtils.resolveCategoryIcon(category.icon ?: category.name)
-                                val color = CategoryUtils.resolveCategoryColor(category.color, Color(0xFF10B981))
-                                IncomeCategoryRow(category.name, amount, icon, color)
-                            }
-                        }
+                                val category = categories.find { it.id == catId }
+                                val catName = category?.name ?: if (catId == -1) "Thu nhập khác" else "Khoản thu"
+                                val icon = CategoryUtils.resolveCategoryIcon(category?.icon ?: catName)
+                                val color = CategoryUtils.resolveCategoryColor(category?.color, Color(0xFF10B981))
 
-                        val otherIncome = incomeByCategory[-1] ?: 0.0
-                        if (otherIncome > 0) {
-                            IncomeCategoryRow("Thu nhập khác", otherIncome, Icons.Default.MoreHoriz, Color(0xFF10B981))
+                                IncomeCategoryRow(catName, amount, icon, color)
+                            }
                         }
 
                         Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {

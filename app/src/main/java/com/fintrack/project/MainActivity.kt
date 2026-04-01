@@ -244,7 +244,7 @@ class MainActivity : ComponentActivity() {
                             LaunchedEffect(userId) {
                                 if (userId != -1) {
                                     withContext(Dispatchers.IO) {
-                                        val loaded = ServiceLocator.getCategoryRepository().getCategoriesByType(userId, CategoryType.EXPENSE)
+                                        val loaded = ServiceLocator.getCategoryRepository().getUserCategories(userId)
                                         withContext(Dispatchers.Main) {
                                             categories.clear()
                                             categories.addAll(loaded)
