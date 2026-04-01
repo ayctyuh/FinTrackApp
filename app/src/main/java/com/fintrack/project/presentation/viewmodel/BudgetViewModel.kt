@@ -40,6 +40,9 @@ class BudgetViewModel(
     private val _spentByCategoryMonth = MutableStateFlow<Map<Int, Double>>(emptyMap())
     val spentByCategoryMonth = _spentByCategoryMonth.asStateFlow()
 
+    private val _incomeByCategoryMonth = MutableStateFlow<Map<Int, Double>>(emptyMap())
+    val incomeByCategoryMonth = _incomeByCategoryMonth.asStateFlow()
+
     private val _yearlySummary = MutableStateFlow<List<MonthSummary>>(emptyList())
     val yearlySummary = _yearlySummary.asStateFlow()
 
@@ -85,10 +88,15 @@ class BudgetViewModel(
 
                 val txns = transactionRepository.getTransactionsByDateRange(userId, start, end)
                 _transactionCount.value = txns.size
-                
+
                 _spentByCategoryMonth.value = txns
-                    .filter { it.type == TransactionType.EXPENSE && it.categoryId != null }
-                    .groupBy { it.categoryId!! }
+                    .filter { it.type == TransactionType.EXPENSE }
+                    .groupBy { it.categoryId ?: -1 } // Nếu không có danh mục thì cho vào nhóm -1 (Khác)
+                    .mapValues { (_, list) -> list.sumOf { it.amount } }
+
+                _incomeByCategoryMonth.value = txns
+                    .filter { it.type == TransactionType.INCOME }
+                    .groupBy { it.categoryId ?: -1 }
                     .mapValues { (_, list) -> list.sumOf { it.amount } }
 
                 checkBudgetAlerts(userId, month, year)

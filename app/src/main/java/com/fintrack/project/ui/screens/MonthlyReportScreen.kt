@@ -51,6 +51,7 @@ fun MonthlyReportScreen(
     val budgets by viewModel.budgets.collectAsState()
     val monthlyBudget by viewModel.monthlyBudget.collectAsState()
     val spentByCategory by viewModel.spentByCategoryMonth.collectAsState()
+    val incomeByCategory by viewModel.incomeByCategoryMonth.collectAsState()
     val transactionCount by viewModel.transactionCount.collectAsState()
 
     LaunchedEffect(selectedYear) {
@@ -75,6 +76,7 @@ fun MonthlyReportScreen(
             year = selectedYear,
             totalLimit = monthlyBudget?.limitAmount ?: 0.0,
             spentByCategory = spentByCategory,
+            incomeByCategory = incomeByCategory,
             categoryBudgets = budgets.filter { it.categoryId != null }.associate { it.categoryId!! to it.limitAmount },
             categories = categories,
             transactionCount = transactionCount,
@@ -164,11 +166,17 @@ fun MonthlyDetailView(
     totalLimit: Double,
     spentByCategory: Map<Int, Double>,
     categoryBudgets: Map<Int, Double>,
+    incomeByCategory: Map<Int, Double>,
     categories: List<Category>,
     transactionCount: Int,
     onBack: () -> Unit
 ) {
+    val incomeCategories = categories.filter { it.type.name == "INCOME" }
+    val expenseCategories = categories.filter { it.type.name == "EXPENSE" }
+
+    val totalIncome = incomeByCategory.values.sumOf { it }
     val totalSpent = spentByCategory.values.sumOf { it }
+
     val remaining = totalLimit - totalSpent
     val progressRatio = if (totalLimit > 0) (totalSpent / totalLimit).toFloat() else 0f
     val progress = progressRatio.coerceIn(0f, 1f)
@@ -180,7 +188,7 @@ fun MonthlyDetailView(
     }
 
     val unplannedSpent = spentByCategory.filter { (catId, _) ->
-        (categoryBudgets[catId] ?: 0.0) <= 0.0
+        catId != -1 && (categoryBudgets[catId] ?: 0.0) <= 0.0
     }.values.sumOf { it }
 
     Scaffold(containerColor = Color(0xFFF8FAFC)) { padding ->
@@ -209,15 +217,15 @@ fun MonthlyDetailView(
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        StatBoxSmall("THU NHẬP", CurrencyUtils.formatMoneyShort(totalIncome), Color(0xFF4ADE80), Modifier.weight(1f))
+                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
                         StatBoxSmall("NGÂN SÁCH", CurrencyUtils.formatMoneyShort(totalLimit), Color.White, Modifier.weight(1f))
                         Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
                         StatBoxSmall("THỰC CHI", CurrencyUtils.formatMoneyShort(totalSpent), Color(0xFFFDE047), Modifier.weight(1f))
                         Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
-                        StatBoxSmall("CÒN LẠI", CurrencyUtils.formatMoneyShort(maxOf(0.0, remaining)), color = progressColor, Modifier.weight(1f))
-                        Box(modifier = Modifier.width(1.dp).height(20.dp).background(Color.White.copy(alpha = 0.2f)))
-                        StatBoxSmall("GIAO DỊCH", "$transactionCount", Color.White, Modifier.weight(1f))
+                        StatBoxSmall("CÒN LẠI", CurrencyUtils.formatMoneyShort(maxOf(0.0, remaining)), Color.White, Modifier.weight(1f))
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("${(progressRatio * 100).toInt()}% đã dùng", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
@@ -229,7 +237,7 @@ fun MonthlyDetailView(
             }
 
 
-            Text("CHI TIẾT BÁO CÁO", modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 12.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text("CHI TIẾT BÁO CÁO", modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 6.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
 
             Card(
                 modifier = Modifier
@@ -239,12 +247,41 @@ fun MonthlyDetailView(
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(modifier = Modifier.padding(14.dp)) {
+                    if (totalIncome > 0 || incomeCategories.any { (incomeByCategory[it.id] ?: 0.0) > 0 }) {
+                        Text("THU NHẬP", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Danh mục", modifier = Modifier.weight(1f), fontSize = 13.sp, color = Color.Gray)
+                            Text("Thực nhận", modifier = Modifier.width(100.dp), textAlign = TextAlign.End, fontSize = 13.sp, color = Color.Gray)
+                        }
+
+                        incomeCategories.forEach { category ->
+                            val amount = incomeByCategory[category.id] ?: 0.0
+                            if (amount > 0) {
+                                val icon = CategoryUtils.resolveCategoryIcon(category.icon ?: category.name)
+                                val color = CategoryUtils.resolveCategoryColor(category.color, Color(0xFF10B981))
+                                IncomeCategoryRow(category.name, amount, icon, color)
+                            }
+                        }
+
+                        val otherIncome = incomeByCategory[-1] ?: 0.0
+                        if (otherIncome > 0) {
+                            IncomeCategoryRow("Thu nhập khác", otherIncome, Icons.Default.MoreHoriz, Color(0xFF10B981))
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "Tổng thu nhập", modifier = Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF1E293B))
+                            Text(text = "+${CurrencyUtils.formatMoney(totalIncome)}", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Color(0xFF10B981))
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp), color = Color(0xFFF1F5F9))
+                    }
+                    Text("CHI TIÊU & NGÂN SÁCH", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp))
                     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Danh mục", modifier = Modifier.weight(1f), fontSize = 13.sp, color = Color.Gray)
-                        Text("Thực chi / Hạn mức", modifier = Modifier.width(70.dp), textAlign = TextAlign.End, fontSize = 13.sp, color = Color.Gray)
+                        Text("Thực chi / Hạn mức", modifier = Modifier.wrapContentWidth(), textAlign = TextAlign.End, fontSize = 13.sp, color = Color.Gray, maxLines = 1)
                     }
 
-                    categories.forEach { category ->
+                    expenseCategories.forEach { category ->
                         val limit = categoryBudgets[category.id] ?: 0.0
                         val spent = spentByCategory[category.id] ?: 0.0
 
@@ -256,7 +293,7 @@ fun MonthlyDetailView(
                         }
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = Color(0xFFF1F5F9))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
                     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "Tổng chi", modifier = Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp,)
                         Column(horizontalAlignment = Alignment.End) {
@@ -279,7 +316,7 @@ fun MonthlyDetailView(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(Icons.Default.Info, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(14.dp))
                             }
-                            Text(text = CurrencyUtils.formatMoney(unplannedSpent), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF92400E))
+                            Text(text = CurrencyUtils.formatMoney(unplannedSpent), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFFEF4444))
                         }
                     }
 
@@ -314,7 +351,7 @@ fun CategoryDetailRow(name: String, limit: Double, spent: Double, icon: ImageVec
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -323,17 +360,39 @@ fun CategoryDetailRow(name: String, limit: Double, spent: Double, icon: ImageVec
         }
 
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text = name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis)
 
         Column(horizontalAlignment = Alignment.End) {
-            Text(text = CurrencyUtils.formatMoney(spent), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = spentTextColor)
+            Text(text = CurrencyUtils.formatMoney(spent), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = spentTextColor)
             if (limit > 0) {
                 Text(text = "/ ${CurrencyUtils.formatMoney(limit)}", fontSize = 12.sp, color = Color.Gray)
             } else {
-                Text(text = "Không đặt hạn mức", fontSize = 11.sp, color = Color.LightGray
+                Text(text = "Không đặt hạn mức", fontSize = 11.sp, color = Color.Gray
                 )
             }
         }
+    }
+}
+
+@Composable
+fun IncomeCategoryRow(name: String, amount: Double, icon: ImageVector, color: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(text = name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E293B), maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+        Text(text = "+${CurrencyUtils.formatMoney(amount)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF10B981))
     }
 }
 
