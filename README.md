@@ -1,74 +1,72 @@
-# FinTrack - Ứng Dụng Quản Lý Tài Chính Cá Nhân
+# FinTrack – Ứng Dụng Quản Lý Tài Chính Cá Nhân
 
-## 🎯 Mô Tả Dự Án
+## Thông Tin Môn Học
 
-FinTrack là một ứng dụng Android hiện đại giúp người dùng quản lý tài chính cá nhân một cách hiệu quả. Ứng dụng cung cấp các tính năng:
+| Thông tin | Chi tiết |
+|----------|---------|
+| **Tên môn học** | Phát Triển Ứng Dụng Cho Các Thiết Bị Di Động |
+| **Mã môn** | INT1449 |
+| **Giảng viên hướng dẫn** | Ths. Nguyễn Hoàng Anh |
+| **Nhóm lớp (QLĐT)** | 02 |
+| **Nhóm BTL** | 01 |
+| **Năm học** | 2025–2026 |
 
-- **Quản lý giao dịch**: Ghi nhận, chỉnh sửa, xóa giao dịch thu/chi
-- **Phân loại giao dịch**: Tổ chức giao dịch theo danh mục
-- **Thống kê chi tiết**: Biểu đồ tổng hợp, theo danh mục, xu hướng, so sánh
-- **Quản lý ngân sách**: Thiết lập, theo dõi, cảnh báo vượt quá ngân sách
-- **Nhập/xuất dữ liệu**: Nhập tự động từ ngân hàng, xuất CSV
+## Thành Viên Nhóm
 
-## 📱 Công Nghệ Sử Dụng
+| STT | Họ và Tên | MSSV | Nhiệm vụ |
+|-----|----------|------|----------|
+| 1 | Nguyễn Quang Huy | B22DCAT143 | Biểu đồ thu–chi tổng hợp, biểu đồ theo danh mục, biểu đồ xu hướng |
+| 2 | Cao Đăng Khánh | B22DCAT... | Xác thực (đăng ký/đăng nhập), nhập liệu tự động, thiết lập ngân sách |
+| 3 | Vũ Đức Mạnh | B22DCAT... | Quản lý giao dịch, phân loại, xem lịch sử, tìm kiếm & sắp xếp |
+| 4 | Đinh Quang Lâm | B22DCAT... | Biểu đồ so sánh thu–chi, theo dõi & cảnh báo ngân sách, báo cáo tháng |
 
-### Frontend
-- **Jetpack Compose**: Modern UI framework
-- **Material Design 3**: Design system
-- **Kotlin**: Ngôn ngữ lập trình
+---
 
-### Backend & Database
-- **Room Database**: Local SQLite database
-- **Kotlin Coroutines**: Asynchronous operations
-- **LiveData & StateFlow**: Reactive data management
+## Giới Thiệu Ứng Dụng
 
-### Architecture
-- **MVVM (Model-View-ViewModel)**: Architecture pattern
-- **Repository Pattern**: Data abstraction
-- **Dependency Injection**: Using Hilt
+**FinTrack** là ứng dụng Android quản lý tài chính cá nhân, giúp người dùng theo dõi thu nhập – chi tiêu, phân tích xu hướng tài chính và kiểm soát ngân sách hàng tháng. Ứng dụng hoạt động hoàn toàn **offline**, dữ liệu lưu trữ cục bộ trên thiết bị người dùng.
 
-### Additional Libraries
-- **Retrofit**: HTTP client for API calls
-- **MPAndroidChart**: Chart visualization
-- **Timber**: Logging
-- **DataStore**: Secure preferences storage
+### Các Chức Năng Chính
 
-## 🚀 Cài Đặt & Chạy
+| Nhóm | Chức năng |
+|------|----------|
+| **Người dùng** | Đăng ký, đăng nhập, chỉnh sửa hồ sơ, đổi mật khẩu, đặt mã PIN |
+| **Giao dịch** | Thêm/sửa/xóa giao dịch thu/chi, phân loại theo danh mục, xem lịch sử, tìm kiếm & lọc, nhập liệu tự động từ thông báo ngân hàng |
+| **Thống kê** | Biểu đồ thu–chi tổng hợp (cột), biểu đồ theo danh mục (thanh ngang), biểu đồ xu hướng (đường), biểu đồ so sánh |
+| **Ngân sách** | Thiết lập ngân sách tháng/theo danh mục, theo dõi mức sử dụng, cảnh báo khi vượt ngưỡng, báo cáo tháng |
 
-### Yêu Cầu
-- Android Studio 2023.1 hoặc cao hơn
-- JDK 11 hoặc cao hơn
-- Android SDK 24+ (minSdk = 24)
-- Android SDK Target 36
+---
 
-### Các Bước Cài Đặt
+## Công Nghệ Sử Dụng
 
-1. **Clone dự án**
-   ```bash
-   git clone https://github.com/username/FinTrackApp.git
-   cd FinTrackApp
-   ```
+### Ngôn ngữ & Nền tảng
+- **Kotlin** – ngôn ngữ lập trình chính (first-class language cho Android)
+- **Android SDK** – minSdk 24 (Android 7.0), targetSdk 36
 
-2. **Mở trong Android Studio**
-   - File → Open
-   - Chọn folder `FinTrackApp`
-   - Android Studio sẽ tự động sync Gradle
+### UI
+- **Jetpack Compose** – UI framework khai báo hiện đại của Google
+- **Material Design 3** – design system
+- **Canvas API (Compose)** – vẽ biểu đồ tùy chỉnh (không dùng thư viện chart ngoài)
 
-3. **Build dự án**
-   ```bash
-   ./gradlew clean build
-   ```
+### Kiến trúc
+- **MVVM** (Model–View–ViewModel)
+- **Repository Pattern** – tầng trung gian giữa ViewModel và data source
+- **Kotlin Coroutines + Dispatchers.IO** – xử lý bất đồng bộ
 
-4. **Chạy trên emulator hoặc thiết bị thực**
-   - Kết nối thiết bị Android hoặc khởi động emulator
-   - Nhấn Run (Shift + F10) hoặc:
-   ```bash
-   ./gradlew installDebug
-   ```
+### Cơ sở dữ liệu
+- **Room Database** (SQLite) – ORM chính thức của Google
+- Gồm 5 bảng: `users`, `categories`, `transactions`, `budgets`, `notifications`
 
-## 📁 Cấu Trúc Thư Mục
+### Thư viện khác
+- **Retrofit + OkHttp** – HTTP client (dùng cho tính năng nhập liệu)
+- **Gson / Moshi** – JSON parsing
+- **DataStore Preferences** – lưu cài đặt và session
+- **Timber** – logging
+- **Navigation Compose** – điều hướng màn hình
 
-Xem file `PROJECT_STRUCTURE.md` để biết chi tiết về cấu trúc dự án.
+---
+
+## Cấu Trúc Dự Án
 
 ```
 FinTrackApp/
@@ -76,113 +74,158 @@ FinTrackApp/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/fintrack/project/
-│   │   │   │   ├── data/               # Data layer (entities, DAOs, repos)
-│   │   │   │   ├── presentation/       # UI layer (Compose screens, ViewModels)
-│   │   │   │   ├── di/                 # Dependency injection
-│   │   │   │   └── utils/              # Utilities
-│   │   │   └── res/                    # Resources
-│   │   ├── androidTest/
-│   │   └── test/
+│   │   │   │   ├── data/
+│   │   │   │   │   ├── dao/                   # Data Access Objects (Room queries)
+│   │   │   │   │   │   ├── TransactionDao.kt
+│   │   │   │   │   │   ├── CategoryDao.kt
+│   │   │   │   │   │   ├── BudgetDao.kt
+│   │   │   │   │   │   ├── UserDao.kt
+│   │   │   │   │   │   └── NotificationDao.kt
+│   │   │   │   │   ├── database/
+│   │   │   │   │   │   └── FinTrackDatabase.kt # Room database singleton
+│   │   │   │   │   ├── model/                 # Entity classes
+│   │   │   │   │   │   ├── User.kt
+│   │   │   │   │   │   ├── Transaction.kt
+│   │   │   │   │   │   ├── Category.kt
+│   │   │   │   │   │   ├── Budget.kt
+│   │   │   │   │   │   └── Notification.kt
+│   │   │   │   │   └── repository/            # Repository pattern
+│   │   │   │   │       ├── UserRepository.kt
+│   │   │   │   │       ├── TransactionRepository.kt
+│   │   │   │   │       ├── CategoryRepository.kt
+│   │   │   │   │       ├── BudgetRepository.kt
+│   │   │   │   │       └── NotificationRepository.kt
+│   │   │   │   ├── presentation/
+│   │   │   │   │   └── viewmodel/             # ViewModels
+│   │   │   │   │       ├── AuthViewModel.kt
+│   │   │   │   │       ├── TransactionViewModel.kt
+│   │   │   │   │       ├── BudgetViewModel.kt
+│   │   │   │   │       ├── ChangePasswordViewModel.kt
+│   │   │   │   │       └── BaseViewModel.kt
+│   │   │   │   ├── ui/
+│   │   │   │   │   ├── screens/               # Composable screens
+│   │   │   │   │   │   ├── DashboardScreen.kt        # Màn hình chính
+│   │   │   │   │   │   ├── StatisticsScreen.kt       # Thống kê biểu đồ
+│   │   │   │   │   │   ├── MonthlyReportScreen.kt    # Báo cáo tháng
+│   │   │   │   │   │   ├── TransactionHistoryScreen.kt
+│   │   │   │   │   │   ├── AddTransactionScreen.kt
+│   │   │   │   │   │   ├── EditTransactionScreen.kt
+│   │   │   │   │   │   ├── BudgetScreen.kt
+│   │   │   │   │   │   ├── CategoryScreen.kt
+│   │   │   │   │   │   ├── LoginScreen.kt
+│   │   │   │   │   │   ├── SignupScreen.kt
+│   │   │   │   │   │   ├── ProfileScreen.kt
+│   │   │   │   │   │   └── ...
+│   │   │   │   │   └── theme/
+│   │   │   │   │       ├── Color.kt
+│   │   │   │   │       ├── Theme.kt
+│   │   │   │   │       └── Type.kt
+│   │   │   │   ├── service/
+│   │   │   │   │   ├── BankNotificationListenerService.kt
+│   │   │   │   │   └── BankNotificationParser.kt
+│   │   │   │   ├── di/
+│   │   │   │   │   └── ServiceLocator.kt      # Dependency injection
+│   │   │   │   ├── utils/
+│   │   │   │   │   ├── CurrencyUtils.kt       # Định dạng tiền VND
+│   │   │   │   │   ├── DateUtils.kt
+│   │   │   │   │   ├── SecurityUtils.kt       # SHA-256 password hashing
+│   │   │   │   │   ├── CategoryUtils.kt
+│   │   │   │   │   └── Constants.kt
+│   │   │   │   ├── MainActivity.kt
+│   │   │   │   └── FinTrackApp.kt
+│   │   │   └── res/                           # Resources (icons, strings...)
+│   │   ├── androidTest/                       # Instrumented tests
+│   │   └── test/                              # Unit tests
 │   └── build.gradle.kts
-├── gradle/libs.versions.toml
+├── gradle/
+│   └── libs.versions.toml                     # Version catalog
+├── report-final/                              # Tài liệu báo cáo
 └── README.md
 ```
 
-## 📚 Hướng Dẫn Sử Dụng (Users)
+---
 
-### 1. Đăng Ký Tài Khoản
-- Nhấn "Đăng Ký"
-- Điền thông tin: tên đăng nhập, email, mật khẩu
-- Mật khẩu phải có:
-  - Ít nhất 8 ký tự
-  - Chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số
+## Cài Đặt & Chạy
 
-### 2. Quản Lý Giao Dịch
-- **Thêm giao dịch**: Nhấn "+" → Chọn loại (Thu/Chi) → Điền thông tin
-- **Chỉnh sửa**: Nhấn trên giao dịch → Chỉnh sửa → Lưu
-- **Xóa**: Swipe sang trái hoặc nhấn delete
+### Yêu Cầu
 
-### 3. Xem Thống Kê
-- **Dashboard**: Xem tổng quan thu/chi hôm nay, tháng này
-- **Biểu đồ**: Đi tới mục "Thống Kê" để xem các biểu đồ chi tiết
-- **So sánh**: Chọn khoảng thời gian để so sánh
+- **Android Studio** 2023.1 (Hedgehog) trở lên
+- **JDK** 11 trở lên
+- **Android SDK** API 24+ (minSdk = 24)
+- **Target SDK** 36
 
-### 4. Thiết Lập Ngân Sách
-- Đi tới "Ngân Sách" → "Thiết Lập Mới"
-- Chọn loại (Tổng/Theo danh mục)
-- Điền số tiền giới hạn
-- Ứng dụng sẽ cảnh báo khi gần vượt quá
+### Các Bước
 
-## 👥 Phân Công Công Việc
-
-| STT | Thành Viên | Công Việc |
-|-----|-----------|----------|
-| 1 | Nguyễn Quang Huy | Biểu đồ thống kê (tổng hợp, danh mục, xu hướng) |
-| 2 | Cao Đăng Khánh | Xác thực, nhập liệu tự động, ngân sách |
-| 3 | Vũ Đức Mạnh | Quản lý giao dịch & danh mục |
-| 4 | Đinh Quang Lâm | Biểu đồ so sánh, cảnh báo, báo cáo |
-
-## 🔐 Bảo Mật
-
-- Mật khẩu được hash bằng SHA-256 trước khi lưu
-- Dữ liệu lưu trữ cục bộ, không gửi qua internet (hiện tại)
-- Session management để logout tự động
-
-## 🧪 Testing
-
-### Unit Tests
+**1. Clone dự án**
 ```bash
-./gradlew test
+git clone https://github.com/ayctyuh/FinTrackApp.git
+cd FinTrackApp
 ```
 
-### Instrumented Tests
+**2. Mở trong Android Studio**
+- Chọn **File → Open** → duyệt đến thư mục `FinTrackApp`
+- Android Studio tự động đồng bộ Gradle (khoảng 2–3 phút lần đầu)
+
+**3. Build dự án**
 ```bash
-./gradlew connectedAndroidTest
+./gradlew clean assembleDebug
 ```
 
-## 📝 Changelog
+**4. Chạy trên emulator hoặc thiết bị thực**
+```bash
+# Cài trực tiếp lên thiết bị đang kết nối
+./gradlew installDebug
+```
+Hoặc nhấn **Run** (Shift + F10) trong Android Studio.
 
-### Version 1.0.0
-- ✅ Xác thực người dùng (Đăng ký/Đăng nhập)
-- ✅ Quản lý giao dịch cơ bản
-- ✅ Danh mục giao dịch
-- ✅ Thống kê với biểu đồ
-- ✅ Quản lý ngân sách
-- ⏳ Nhập/xuất dữ liệu (đang phát triển)
-
-## 🐛 Báo Cáo Lỗi
-
-Nếu bạn tìm thấy lỗi, vui lòng:
-1. Kiểm tra xem lỗi đó đã được báo cáo chưa
-2. Tạo issue mới với:
-   - Mô tả chi tiết lỗi
-   - Steps to reproduce
-   - Expected vs Actual behavior
-   - Thông tin thiết bị (Model, Android version)
-
-## 💡 Đề Xuất Tính Năng
-
-Các đề xuất được chào đón! Vui lòng tạo issue với tag "enhancement".
-
-## 📧 Liên Hệ
-
-- **Email**: huynq0307@gmail.com
-- **GitHub Issues**: [ayctyuh](https://github.com/username/FinTrackApp/issues)
-
-## 📄 License
-
-Dự án này được cấp phép dưới MIT License. Xem file [LICENSE](LICENSE) để biết chi tiết.
-
-## 🙏 Cảm Ơn
-
-Cảm ơn các thành viên nhóm đã đóng góp vào dự án này!
+**5. Cấp quyền (tùy chọn)**
+- Để dùng tính năng **nhập liệu tự động từ ngân hàng**: vào Cài đặt → Trợ năng → Quyền truy cập thông báo → bật FinTrack.
 
 ---
 
-**Thông Tin Dự Án**
-- Môn học: Phát Triển Ứng Dụng Cho Các Thiết Bị Di Động (INT1449)
-- Giảng viên hướng dẫn: Ths. Nguyễn Hoàng Anh
-- Nhóm lớp: 02
-- Nhóm: 01
-- Năm học: 2025-2026
+## Hướng Dẫn Sử Dụng
 
+### Đăng Ký & Đăng Nhập
+- Màn hình đầu tiên: Đăng nhập hoặc Đăng ký
+- Mật khẩu yêu cầu: tối thiểu 8 ký tự, có chữ hoa, chữ thường và số
+- Mật khẩu được mã hóa SHA-256 trước khi lưu
+
+### Quản Lý Giao Dịch
+- Nhấn nút **"+"** ở thanh điều hướng dưới để thêm giao dịch mới
+- Chọn loại: Thu hoặc Chi; nhập số tiền, chọn danh mục, ngày và mô tả
+- Vuốt sang trái hoặc nhấn giữ giao dịch để xóa/sửa
+
+### Xem Thống Kê
+- Tab **"Thống kê"** → chọn loại biểu đồ (Tổng hợp / Danh mục / Xu hướng)
+- Chuyển bộ lọc **Tuần / Tháng / Năm** để thay đổi khoảng thời gian
+
+### Thiết Lập Ngân Sách
+- Tab **"Ngân sách"** → Thiết lập ngân sách tổng hoặc theo từng danh mục
+- Ứng dụng cảnh báo khi chi tiêu đạt 80% ngân sách
+
+---
+
+## Bảo Mật
+
+- Mật khẩu được hash bằng **SHA-256** trước khi lưu vào CSDL
+- **Không có server** – dữ liệu lưu hoàn toàn trên thiết bị, không truyền qua Internet
+- Hỗ trợ đặt **mã PIN** để khóa ứng dụng
+
+---
+
+## Testing
+
+```bash
+# Unit tests
+./gradlew test
+
+# Instrumented tests (cần thiết bị/emulator)
+./gradlew connectedAndroidTest
+```
+
+---
+
+## Liên Hệ
+
+- **Email:** huynq0307@gmail.com
+- **GitHub:** [ayctyuh](https://github.com/ayctyuh)
