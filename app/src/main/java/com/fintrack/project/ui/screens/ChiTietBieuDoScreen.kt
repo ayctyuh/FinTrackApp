@@ -78,11 +78,11 @@ fun ChiTietBieuDoScreen(
             )
         },
         containerColor = Color(0xFFF8FAFC)
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(paddingValues)
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
@@ -277,7 +277,7 @@ fun SummaryCard(title: String, monthA: Int, valueA: Double, monthB: Int, valueB:
             Spacer(modifier = Modifier.height(8.dp))
             SummaryRow("T$monthA", valueA, colorA)
             
-            Divider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.8.dp, color = Color(0xFFF1F5F9))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.8.dp, color = Color(0xFFF1F5F9))
             
             Text("BIẾN ĐỘNG", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
             val diff = valueB - valueA
@@ -316,7 +316,7 @@ fun SummaryRow(label: String, value: Double, dotColor: Color) {
 @Composable
 fun VariationItem(label: String, valA: Double, valB: Double) {
     val diff = valB - valA
-    val percent = if (valA != 0.0) (diff / valA) * 100 else 0.0
+    val percent = if (valA != 0.0) (diff / valA) * 100 else 0.0 // ✅ Đã sửa valueA thành valA
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -375,6 +375,9 @@ fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
                 legend.isEnabled = false
                 setScaleEnabled(false)
                 setExtraOffsets(0f, 15f, 0f, 10f)
+
+                // Set the custom renderer once so buffers are initialized on data changes.
+                renderer = BeautifulBarChartRenderer(this, animator, viewPortHandler, 18f)
             }
         },
         update = { chart ->
@@ -400,10 +403,8 @@ fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
             chart.xAxis.axisMinimum = 0f
             chart.xAxis.axisMaximum = chart.barData.getGroupWidth(groupSpace, barSpace) * data.size
             chart.xAxis.labelCount = data.size
-            
-            // Apply Custom Renderer for rounded corners and Gradient
-            chart.renderer = BeautifulBarChartRenderer(chart, chart.animator, chart.viewPortHandler, 18f)
-            
+
+            chart.notifyDataSetChanged()
             chart.animateY(1200)
             chart.invalidate()
         },
