@@ -60,7 +60,8 @@ fun StatisticsScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToBudget: () -> Unit,
     onAddClick: () -> Unit,
-    onNavigateToReport: () -> Unit = {}
+    onNavigateToReport: () -> Unit = {},
+    onNavigateToDetail: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var currentUserId by remember { mutableIntStateOf(-1) }
@@ -166,7 +167,7 @@ fun StatisticsScreen(
                     tempCal.timeInMillis = txn.transactionDate
                     val weekOfMonth = tempCal.get(Calendar.WEEK_OF_MONTH) - 1
                     val index = weekOfMonth.coerceIn(0, 4)
-                    if (txn.type == TransactionType.INCOME) weekValues[index][0] += txn.amount.toFloat()
+                    if (txn.type == TransactionType.INCOME) weekValues[index][0] += weekValues[index][0] + txn.amount.toFloat()
                     else weekValues[index][1] += txn.amount.toFloat()
                 }
                 weeks.forEachIndexed { i, label -> groupedData.add(ChartDataPoint(label, weekValues[i][0], weekValues[i][1])) }
@@ -357,7 +358,7 @@ fun StatisticsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().clickable { onNavigateToDetail() },
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(20.dp),
                     elevation = CardDefaults.cardElevation(2.dp)
