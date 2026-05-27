@@ -12,6 +12,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.*
 
+/**
+ * DTO tong hop theo thang cho man hinh bao cao.
+ * Phu thuoc: du lieu tinh toan tu `BudgetRepository` va `TransactionRepository`.
+ * Duoc su dung boi `MonthlyReportScreen`.
+ */
 data class MonthSummary(
     val month: Int,
     val totalLimit: Double,
@@ -20,6 +25,11 @@ data class MonthSummary(
     val totalIncome: Double = 0.0,
     )
 
+/**
+ * ViewModel xu ly logic bao cao va canh bao ngan sach.
+ * Phu thuoc: `BudgetRepository`, `TransactionRepository`.
+ * Duoc su dung boi cac man hinh bao cao/chi tiet (MonthlyReportScreen).
+ */
 class BudgetViewModel(
     private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository
@@ -50,10 +60,13 @@ class BudgetViewModel(
     val transactionCount = _transactionCount.asStateFlow()
 
     /**
-     * Lấy ngân sách của người dùng
+     * Lay toan bo ngan sach cua nguoi dung.
+     * @param userId ID nguoi dung can truy van.
+     * @return Khong tra ve, cap nhat StateFlow `budgets`.
+     * Logic: goi repository lay danh sach va day vao state.
      */
     fun getUserBudgets(userId: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: chay bat dong bo trong lifecycle ViewModel
             try {
                 showLoading()
                 clearError()
@@ -68,10 +81,15 @@ class BudgetViewModel(
     }
 
     /**
-     * Lấy ngân sách theo tháng
+     * Lay ngan sach theo thang va tinh cac so lieu tong hop.
+     * @param userId ID nguoi dung.
+     * @param month Thang can xem (1-12).
+     * @param year Nam can xem.
+     * @return Khong tra ve, cap nhat cac StateFlow lien quan.
+     * Logic: truy van ngan sach, giao dich, gom nhom theo danh muc va kiem tra canh bao.
      */
     fun getBudgetsByMonth(userId: Int, month: Int, year: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: chay bat dong bo trong lifecycle ViewModel
             try {
                 showLoading()
                 clearError()
@@ -109,10 +127,14 @@ class BudgetViewModel(
     }
 
     /**
-     * Lấy báo cáo tóm tắt cả năm
+     * Lay bao cao tong hop ca nam theo thang.
+     * @param userId ID nguoi dung.
+     * @param year Nam can tong hop.
+     * @return Khong tra ve, cap nhat StateFlow `yearlySummary`.
+     * Logic: lap 12 thang, tinh han muc/chi/thu va xep trang thai.
      */
     fun getYearlySummary(userId: Int, year: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: chay bat dong bo trong lifecycle ViewModel
             try {
                 showLoading()
                 val summary = mutableListOf<MonthSummary>()
@@ -151,8 +173,14 @@ class BudgetViewModel(
         }
     }
 
+    /**
+     * Tao moi ngan sach.
+     * @param budget Doi tuong ngan sach can them.
+     * @return Khong tra ve, tai lai du lieu thang tuong ung.
+     * Logic: insert vao Room qua repository, sau do refresh.
+     */
     fun createBudget(budget: Budget) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: thuc thi tac vu I/O khong chan UI
             try {
                 showLoading()
                 budgetRepository.insertBudget(budget)
@@ -165,8 +193,13 @@ class BudgetViewModel(
         }
     }
 
+    /**
+     * Cap nhat ngan sach.
+     * @param budget Ngan sach da chinh sua.
+     * @return Khong tra ve, tai lai du lieu thang tuong ung.
+     */
     fun updateBudget(budget: Budget) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: thuc thi tac vu I/O khong chan UI
             try {
                 showLoading()
                 budgetRepository.updateBudget(budget)
@@ -179,8 +212,13 @@ class BudgetViewModel(
         }
     }
 
+    /**
+     * Xoa ngan sach.
+     * @param budget Ngan sach can xoa.
+     * @return Khong tra ve, tai lai du lieu thang tuong ung.
+     */
     fun deleteBudget(budget: Budget) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: thuc thi tac vu I/O khong chan UI
             try {
                 showLoading()
                 budgetRepository.deleteBudget(budget)
@@ -193,14 +231,22 @@ class BudgetViewModel(
         }
     }
 
+    /**
+     * Sao chep ngan sach tu thang truoc sang thang hien tai.
+     * @param userId ID nguoi dung.
+     * @param currentMonth Thang hien tai.
+     * @param currentYear Nam hien tai.
+     * @return Khong tra ve, cap nhat du lieu thang hien tai.
+     * Logic: lay ngan sach thang truoc, copy sang thang moi.
+     */
     fun copyBudgetFromPreviousMonth(userId: Int, currentMonth: Int, currentYear: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch { // Kotlin Coroutines: chay bat dong bo trong lifecycle ViewModel
             try {
                 showLoading()
                 val prevMonth = if (currentMonth == 1) 12 else currentMonth - 1
                 val prevYear = if (currentMonth == 1) currentYear - 1 else currentYear
 
-                withContext(Dispatchers.IO) {
+                withContext(Dispatchers.IO) { // Kotlin Coroutines: chuyen sang thread I/O de truy van Room
                     val prevMonthlyBudget = budgetRepository.getMonthlyBudget(userId, prevMonth, prevYear)
                     val prevBudgets = budgetRepository.getBudgetsByMonth(userId, prevMonth, prevYear)
 
@@ -223,6 +269,14 @@ class BudgetViewModel(
         }
     }
 
+    /**
+     * Kiem tra va tao danh sach canh bao ngan sach theo danh muc.
+     * @param userId ID nguoi dung.
+     * @param month Thang can kiem tra.
+     * @param year Nam can kiem tra.
+     * @return Khong tra ve, cap nhat StateFlow `budgetAlerts`.
+     * Logic: tinh % su dung va so sanh nguong canh bao.
+     */
     private suspend fun checkBudgetAlerts(userId: Int, month: Int, year: Int) {
         val alerts = mutableListOf<String>()
         val budgets = budgetRepository.getBudgetsByMonth(userId, month, year)
@@ -241,6 +295,12 @@ class BudgetViewModel(
         _budgetAlerts.value = alerts
     }
 
+    /**
+     * Tinh timestamp bat dau thang.
+     * @param month Thang (1-12).
+     * @param year Nam.
+     * @return Millis dau thang theo mui gio he thong.
+     */
     private fun getStartOfMonthTimestamp(month: Int, year: Int): Long {
         return Calendar.getInstance().apply {
             set(year, month - 1, 1, 0, 0, 0)
@@ -248,6 +308,12 @@ class BudgetViewModel(
         }.timeInMillis
     }
 
+    /**
+     * Tinh timestamp ket thuc thang.
+     * @param month Thang (1-12).
+     * @param year Nam.
+     * @return Millis cuoi thang theo mui gio he thong.
+     */
     private fun getEndOfMonthTimestamp(month: Int, year: Int): Long {
         return Calendar.getInstance().apply {
             set(year, month - 1, getActualMaximum(Calendar.DAY_OF_MONTH), 23, 59, 59)

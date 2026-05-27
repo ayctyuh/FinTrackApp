@@ -51,6 +51,16 @@ import com.github.mikephil.charting.utils.ViewPortHandler
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh chi tiet bieu do so sanh thu/chi.
+ * Phu thuoc: `StatisticsViewModel` va du lieu `WeeklyComparisonData`.
+ * Duoc goi tu luong thong ke/bieu do.
+ * @param userId ID nguoi dung.
+ * @param viewModel ViewModel cung cap du lieu so sanh.
+ * @param onBackClick Su kien quay lai.
+ * @return Khong tra ve.
+ * Logic: tai du lieu theo moc thang va hien thi chart + tong hop.
+ */
 @Composable
 fun ChiTietBieuDoScreen(
     userId: Int,
@@ -229,6 +239,17 @@ fun ChiTietBieuDoScreen(
     }
 }
 
+/**
+ * Hop chon thang cho moc so sanh.
+ * @param label Nhan moc.
+ * @param subLabel Mo ta phu.
+ * @param month Thang dang chon.
+ * @param year Nam dang chon.
+ * @param color Mau chu dao.
+ * @param modifier Modifier cho layout.
+ * @param onClick Su kien mo bo chon thang.
+ * @return Khong tra ve.
+ */
 @Composable
 fun MonthSelectorBox(label: String, subLabel: String, month: Int, year: Int, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Card(
@@ -253,6 +274,12 @@ fun MonthSelectorBox(label: String, subLabel: String, month: Int, year: Int, col
     }
 }
 
+/**
+ * Item chu thich mau cho bieu do.
+ * @param label Nhan hien thi.
+ * @param color Mau dai dien.
+ * @return Khong tra ve.
+ */
 @Composable
 fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -261,6 +288,19 @@ fun LegendItem(label: String, color: Color) {
     }
 }
 
+/**
+ * The tong hop thu/chi cho 2 moc thang.
+ * @param title Tieu de the.
+ * @param monthA Thang moc A.
+ * @param valueA Gia tri moc A.
+ * @param monthB Thang moc B.
+ * @param valueB Gia tri moc B.
+ * @param modifier Modifier cho layout.
+ * @param colorA Mau cho moc A.
+ * @param colorB Mau cho moc B.
+ * @param isExpense Danh dau la chi tieu de danh gia xu huong.
+ * @return Khong tra ve.
+ */
 @Composable
 fun SummaryCard(title: String, monthA: Int, valueA: Double, monthB: Int, valueB: Double, modifier: Modifier, colorA: Color, colorB: Color, isExpense: Boolean = false) {
     Card(
@@ -302,6 +342,13 @@ fun SummaryCard(title: String, monthA: Int, valueA: Double, monthB: Int, valueB:
     }
 }
 
+/**
+ * Dong tong hop gia tri theo moc.
+ * @param label Nhan moc.
+ * @param value Gia tri so tien.
+ * @param dotColor Mau cham.
+ * @return Khong tra ve.
+ */
 @Composable
 fun SummaryRow(label: String, value: Double, dotColor: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -313,6 +360,13 @@ fun SummaryRow(label: String, value: Double, dotColor: Color) {
     }
 }
 
+/**
+ * Item hien thi ti le bien dong giua 2 moc.
+ * @param label Nhan thu/chi.
+ * @param valA Gia tri moc A.
+ * @param valB Gia tri moc B.
+ * @return Khong tra ve.
+ */
 @Composable
 fun VariationItem(label: String, valA: Double, valB: Double) {
     val diff = valB - valA
@@ -327,12 +381,18 @@ fun VariationItem(label: String, valA: Double, valB: Double) {
     }
 }
 
+/**
+ * Bieu do so sanh thu/chi theo tuan.
+ * @param data Du lieu so sanh theo tuan.
+ * @return Khong tra ve.
+ * Logic: dung MPAndroidChart ve grouped bar chart trong Compose.
+ */
 @Composable
 fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
     if (data.isEmpty()) return
     AndroidView(
         factory = { context ->
-            BarChart(context).apply {
+            BarChart(context).apply { // MPAndroidChart: khoi tao BarChart de ve bieu do cot
                 description.isEnabled = false
                 setPinchZoom(false)
                 setDrawBarShadow(false)
@@ -346,7 +406,7 @@ fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
                     textColor = android.graphics.Color.parseColor("#94A3B8")
                     textSize = 10f
                     axisLineColor = android.graphics.Color.parseColor("#E2E8F0")
-                    valueFormatter = object : ValueFormatter() {
+                    valueFormatter = object : ValueFormatter() { // MPAndroidChart: format nhan truc X theo tuan
                         override fun getFormattedValue(value: Float): String {
                             return data.getOrNull(value.toInt())?.weekLabel ?: ""
                         }
@@ -361,7 +421,7 @@ fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
                     axisLineColor = android.graphics.Color.TRANSPARENT
                     textColor = android.graphics.Color.parseColor("#94A3B8")
                     textSize = 10f
-                    valueFormatter = object : ValueFormatter() {
+                    valueFormatter = object : ValueFormatter() { // MPAndroidChart: format truc Y de rut gon don vi
                         override fun getFormattedValue(value: Float): String {
                             return when {
                                 value >= 1000000 -> "${(value / 1000000).toInt()}M"
@@ -377,7 +437,7 @@ fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
                 setExtraOffsets(0f, 15f, 0f, 10f)
 
                 // Set the custom renderer once so buffers are initialized on data changes.
-                renderer = BeautifulBarChartRenderer(this, animator, viewPortHandler, 18f)
+                renderer = BeautifulBarChartRenderer(this, animator, viewPortHandler, 18f) // MPAndroidChart: renderer tuy bien bo tron goc
             }
         },
         update = { chart ->
@@ -386,32 +446,37 @@ fun ComparisonBarChart(data: List<WeeklyComparisonData>) {
             val entriesEB = data.mapIndexed { i, d -> BarEntry(i.toFloat(), d.expenseB.toFloat()) }
             val entriesEA = data.mapIndexed { i, d -> BarEntry(i.toFloat(), d.expenseA.toFloat()) }
 
-            val setIB = BarDataSet(entriesIB, "InB").apply { color = Color(0xFF10B981).toArgb(); setDrawValues(false) }
-            val setIA = BarDataSet(entriesIA, "InA").apply { color = Color(0xFF60A5FA).toArgb(); setDrawValues(false) }
-            val setEB = BarDataSet(entriesEB, "ExB").apply { color = Color(0xFFEF4444).toArgb(); setDrawValues(false) }
-            val setEA = BarDataSet(entriesEA, "ExA").apply { color = Color(0xFFF97316).toArgb(); setDrawValues(false) }
+            val setIB = BarDataSet(entriesIB, "InB").apply { color = Color(0xFF10B981).toArgb(); setDrawValues(false) } // MPAndroidChart: dataset thu moc B
+            val setIA = BarDataSet(entriesIA, "InA").apply { color = Color(0xFF60A5FA).toArgb(); setDrawValues(false) } // MPAndroidChart: dataset thu moc A
+            val setEB = BarDataSet(entriesEB, "ExB").apply { color = Color(0xFFEF4444).toArgb(); setDrawValues(false) } // MPAndroidChart: dataset chi moc B
+            val setEA = BarDataSet(entriesEA, "ExA").apply { color = Color(0xFFF97316).toArgb(); setDrawValues(false) } // MPAndroidChart: dataset chi moc A
 
-            val barData = BarData(setIB, setIA, setEB, setEA)
+            val barData = BarData(setIB, setIA, setEB, setEA) // MPAndroidChart: gom dataset vao BarData
             val groupSpace = 0.35f
             val barSpace = 0.02f
             val barWidth = 0.14f
             
             barData.barWidth = barWidth
             chart.data = barData
-            chart.groupBars(0f, groupSpace, barSpace)
+            chart.groupBars(0f, groupSpace, barSpace) // MPAndroidChart: nhom cac cot theo tuan
             
             chart.xAxis.axisMinimum = 0f
             chart.xAxis.axisMaximum = chart.barData.getGroupWidth(groupSpace, barSpace) * data.size
             chart.xAxis.labelCount = data.size
 
             chart.notifyDataSetChanged()
-            chart.animateY(1200)
+            chart.animateY(1200) // MPAndroidChart: animate truc Y de tao hieu ung
             chart.invalidate()
         },
         modifier = Modifier.fillMaxSize()
     )
 }
 
+/**
+ * Renderer tuy bien bo tron goc bar cho MPAndroidChart.
+ * Phu thuoc: MPAndroidChart renderer APIs.
+ * Duoc su dung boi `ComparisonBarChart`.
+ */
 class BeautifulBarChartRenderer(
     chart: BarChart,
     animator: ChartAnimator,
@@ -421,6 +486,13 @@ class BeautifulBarChartRenderer(
 
     private val mBarRect = RectF()
 
+    /**
+     * Ve tung dataset voi mau gradient va goc bo tron.
+     * @param c Canvas de ve.
+     * @param dataSet Du lieu bar can ve.
+     * @param index Vi tri dataset trong chart.
+     * @return Khong tra ve.
+     */
     override fun drawDataSet(c: Canvas, dataSet: IBarDataSet, index: Int) {
         val trans = mChart.getTransformer(dataSet.axisDependency)
         mRenderPaint.style = Paint.Style.FILL
@@ -469,6 +541,12 @@ class BeautifulBarChartRenderer(
         }
     }
 
+    /**
+     * Dieu chinh do trong suot cua mau.
+     * @param color Mau goc.
+     * @param factor He so alpha (0-1).
+     * @return Mau moi sau khi chinh alpha.
+     */
     private fun adjustAlpha(color: Int, factor: Float): Int {
         val alpha = Math.round(android.graphics.Color.alpha(color) * factor)
         val red = android.graphics.Color.red(color)
@@ -478,6 +556,16 @@ class BeautifulBarChartRenderer(
     }
 }
 
+/**
+ * Hop thoai chon 2 moc thang de so sanh.
+ * @param initialMonthA Thang moc A ban dau.
+ * @param initialYearA Nam moc A ban dau.
+ * @param initialMonthB Thang moc B ban dau.
+ * @param initialYearB Nam moc B ban dau.
+ * @param onDismiss Su kien dong hop thoai.
+ * @param onConfirm Su kien xac nhan lua chon.
+ * @return Khong tra ve.
+ */
 @Composable
 fun MonthComparisonPicker(
     initialMonthA: Int, initialYearA: Int,
@@ -597,6 +685,15 @@ fun MonthComparisonPicker(
     }
 }
 
+/**
+ * Nut chuyen doi chon moc A/B.
+ * @param label Nhan nut.
+ * @param isSelected Trang thai chon.
+ * @param color Mau nhan.
+ * @param onClick Su kien bam.
+ * @param modifier Modifier cho layout.
+ * @return Khong tra ve.
+ */
 @Composable
 fun MocToggleButton(label: String, isSelected: Boolean, color: Color, onClick: () -> Unit, modifier: Modifier) {
     Button(
@@ -615,6 +712,15 @@ fun MocToggleButton(label: String, isSelected: Boolean, color: Color, onClick: (
     }
 }
 
+/**
+ * Hop thong tin lua chon trong dialog.
+ * @param label Nhan moc.
+ * @param date Ngay/thang hien thi.
+ * @param bgColor Mau nen.
+ * @param textColor Mau chu.
+ * @param modifier Modifier cho layout.
+ * @return Khong tra ve.
+ */
 @Composable
 fun SelectionInfoBoxDialog(label: String, date: String, bgColor: Color, textColor: Color, modifier: Modifier) {
     Card(

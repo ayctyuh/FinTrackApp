@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(
+@Entity( // Room: khai bao entity de map data class voi bang SQLite
     tableName = "budgets",
     foreignKeys = [
         ForeignKey(
@@ -26,6 +26,11 @@ import androidx.room.PrimaryKey
         Index("categoryId")
     ]
 )
+/**
+ * Entity ngan sach theo thang/danh muc trong Room.
+ * Phu thuoc: Room annotations va cac entity `User`, `Category`.
+ * Duoc su dung boi `BudgetDao` va `FinTrackDatabase` de luu/lay ngan sach.
+ */
 data class Budget(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
