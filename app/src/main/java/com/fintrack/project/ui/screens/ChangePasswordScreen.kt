@@ -26,6 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh doi mat khau.
+ * Phu thuoc: UI Compose va logic goi tu MainActivity.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Callback quay lai.
+ * @param onConfirmClick Callback xac nhan doi mat khau.
+ */
 @Composable
 fun ChangePasswordScreen(
     onBackClick: () -> Unit,
@@ -158,7 +165,14 @@ fun ChangePasswordScreen(
     }
 }
 
-// Hàm hỗ trợ vẽ ô nhập mật khẩu
+/**
+ * Truong nhap mat khau dung chung.
+ * @param value Gia tri hien tai.
+ * @param onValueChange Callback doi gia tri.
+ * @param label Nhan hien thi.
+ * @param isVisible Hien/anan mat khau.
+ * @param onToggleVisibility Bat/tat che do hien.
+ */
 @Composable
 fun PasswordField(
     value: String,

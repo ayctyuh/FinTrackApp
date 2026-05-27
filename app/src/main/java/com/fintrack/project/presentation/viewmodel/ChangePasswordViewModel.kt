@@ -7,7 +7,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.fintrack.project.data.dao.UserDao
 
+/**
+ * ViewModel doi mat khau.
+ * Phu thuoc: `UserDao` (Room).
+ * Duoc su dung boi `ChangePasswordScreen`.
+ */
 class ChangePasswordViewModel(private val userDao: UserDao) : ViewModel() {
+    /**
+     * Doi mat khau cho nguoi dung.
+     * @param userId ID nguoi dung.
+     * @param oldPass Mat khau cu.
+     * @param newPass Mat khau moi.
+     * @param onSuccess Callback khi thanh cong.
+     * @param onError Callback khi loi.
+     */
     fun changePassword(
         userId: Int,
         oldPass: String,

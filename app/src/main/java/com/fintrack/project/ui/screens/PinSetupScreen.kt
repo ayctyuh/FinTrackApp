@@ -27,8 +27,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Buoc thiet lap ma PIN.
+ */
 enum class PinStep { CHECK_OLD, ENTER_NEW, CONFIRM_NEW }
 
+/**
+ * Man hinh thiet lap/doi ma PIN.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ * @param onNavigateToBudget Mo ngan sach.
+ * @param onNavigateToStatistics Mo thong ke.
+ * @param onNavigateToHome Ve trang chu.
+ * @param onAddClick Mo them giao dich.
+ * @param onNavigateToProfile Mo trang ca nhan.
+ * @param onPinSaved Callback sau khi luu PIN.
+ */
 @Composable
 fun PinSetupScreen(
     onBackClick: () -> Unit,
@@ -66,18 +81,28 @@ fun PinSetupScreen(
         }
     }
 
+    /**
+     * Them chu so vao PIN hien tai.
+     * @param number Chu so duoc chon.
+     */
     fun onNumberClick(number: Int) {
         if (currentInput.length < maxPinLength) {
             currentInput += number.toString()
         }
     }
 
+    /**
+     * Xoa ky tu PIN cuoi cung.
+     */
     fun onBackspaceClick() {
         if (currentInput.isNotEmpty()) {
             currentInput = currentInput.dropLast(1)
         }
     }
 
+    /**
+     * Kiem tra PIN va chuyen buoc.
+     */
     fun verifyAndProceed() {
         if (currentInput.length == maxPinLength) {
             when (currentStep) {
@@ -235,6 +260,12 @@ fun PinSetupScreen(
     }
 }
 
+/**
+ * Nut so cho ban phim PIN.
+ * @param text Chu so hien thi.
+ * @param modifier Modifier cho nut.
+ * @param onClick Callback khi bam.
+ */
 @Composable
 fun NumberButton(text: String, modifier: Modifier, onClick: () -> Unit) {
     Box(modifier = modifier.clickable(onClick = onClick).background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {

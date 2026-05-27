@@ -42,6 +42,19 @@ import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh trang chu tong quan.
+ * Phu thuoc: `FinTrackDatabase` va cac model giao dich/thong bao.
+ * Duoc su dung boi `MainActivity` khi vao trang chu.
+ * @param onLogout Callback dang xuat.
+ * @param onNotificationClick Mo man hinh thong bao.
+ * @param onProfileClick Mo man hinh ca nhan.
+ * @param onSeeAllClick Mo lich su giao dich.
+ * @param onBudgetClick Mo ngan sach.
+ * @param onAddClick Mo them giao dich.
+ * @param onStatisticsClick Mo thong ke.
+ * @param onEditTransactionClick Mo sua giao dich.
+ */
 @Composable
 fun DashboardScreen(
     onLogout: () -> Unit = {},
@@ -224,12 +237,24 @@ fun DashboardScreen(
     }
 }
 
+/**
+ * Dinh dang so tien theo VND.
+ * @param amount So tien.
+ */
 fun formatCurrency(amount: Double): String {
     val format = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
     return format.format(amount)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Header hien thi thong tin tong quan.
+ * @param username Ten nguoi dung.
+ * @param balance So du hien tai.
+ * @param monthlyIncome Thu nhap thang.
+ * @param unreadNotiCount So thong bao chua doc.
+ * @param onNotificationClick Callback mo thong bao.
+ */
 @Composable
 fun HeaderSection(username: String, balance: Double, monthlyIncome: Double, unreadNotiCount: Int, onNotificationClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)).background(Brush.verticalGradient(colors = listOf(Color(0xFF1A3FBF), Color(0xFF3B82F6))))) {
@@ -262,6 +287,14 @@ fun HeaderSection(username: String, balance: Double, monthlyIncome: Double, unre
     }
 }
 
+/**
+ * The muc tieu tiet kiem.
+ * @param goalName Ten muc tieu.
+ * @param goalAmount So tien muc tieu.
+ * @param goalIconStr Khoa icon.
+ * @param currentBalance So du hien tai.
+ * @param onClick Callback mo dialog chinh sua.
+ */
 @Composable
 fun SavingGoalCard(goalName: String, goalAmount: Double, goalIconStr: String, currentBalance: Double, onClick: () -> Unit) {
     val isConfigured = goalAmount > 0
@@ -317,6 +350,14 @@ fun SavingGoalCard(goalName: String, goalAmount: Double, goalIconStr: String, cu
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Dialog thiet lap muc tieu tiet kiem.
+ * @param currentName Ten hien tai.
+ * @param currentAmount So tien hien tai.
+ * @param currentIcon Icon hien tai.
+ * @param onDismiss Dong dialog.
+ * @param onSave Luu thay doi.
+ */
 @Composable
 fun GoalSetupDialog(
     currentName: String, currentAmount: Double, currentIcon: String, onDismiss: () -> Unit, onSave: (String, Double, String) -> Unit
@@ -368,6 +409,10 @@ fun GoalSetupDialog(
     }
 }
 
+/**
+ * Chon icon theo ten muc tieu.
+ * @param name Ten icon.
+ */
 fun getIconForGoal(name: String): ImageVector {
     return when (name) {
         "Car" -> Icons.Default.DirectionsCar
@@ -380,6 +425,12 @@ fun getIconForGoal(name: String): ImageVector {
     }
 }
 
+/**
+ * The tien do ngan sach thang.
+ * @param spent Tong da chi.
+ * @param limit Han muc thang.
+ * @param onClick Callback mo ngan sach.
+ */
 @Composable
 fun BudgetProgressCard(
     spent: Double,
@@ -417,6 +468,10 @@ fun BudgetProgressCard(
     }
 }
 
+/**
+ * Trang thai trong khi chua co giao dich gan day.
+ * @param onSeeAllClick Mo danh sach giao dich.
+ */
 @Composable
 fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -430,6 +485,15 @@ fun RecentTransactionsEmptyState(onSeeAllClick: () -> Unit = {}) {
     }
 }
 
+/**
+ * Bottom navigation dung chung.
+ * @param onHomeClick Mo trang chu.
+ * @param onAddClick Mo them giao dich.
+ * @param onProfileClick Mo ca nhan.
+ * @param onBudgetClick Mo ngan sach.
+ * @param onStatisticsClick Mo thong ke.
+ * @param currentScreen Ten man hinh hien tai.
+ */
 @Composable
 fun ProfileBottomNavigationBar(
     onHomeClick: () -> Unit = {},
@@ -449,6 +513,13 @@ fun ProfileBottomNavigationBar(
     }
 }
 
+/**
+ * Danh sach giao dich gan day.
+ * @param transactions Danh sach giao dich.
+ * @param categoriesMap Map danh muc theo ID.
+ * @param onSeeAllClick Mo danh sach day du.
+ * @param onTransactionClick Click vao giao dich.
+ */
 @Composable
 fun RecentTransactionsList(transactions: List<Transaction>, categoriesMap: Map<Int, com.fintrack.project.data.model.Category>, onSeeAllClick: () -> Unit, onTransactionClick: (Transaction) -> Unit) {
     val timeFormatter = SimpleDateFormat("HH:mm - dd/MM", Locale("vi", "VN"))
@@ -482,6 +553,15 @@ fun RecentTransactionsList(transactions: List<Transaction>, categoriesMap: Map<I
     }
 }
 
+/**
+ * Dialog chi tiet giao dich.
+ * @param transaction Giao dich can xem.
+ * @param categoryName Ten danh muc.
+ * @param currentBalance So du hien tai.
+ * @param onDismiss Dong dialog.
+ * @param onEdit Callback sua giao dich.
+ * @param onDelete Callback xoa giao dich.
+ */
 @Composable
 fun TransactionDetailDialog(transaction: Transaction, categoryName: String, currentBalance: Double, onDismiss: () -> Unit, onEdit: (Transaction) -> Unit = {},   onDelete: (Transaction) -> Unit = {}) {
     val isInc = transaction.type == TransactionType.INCOME

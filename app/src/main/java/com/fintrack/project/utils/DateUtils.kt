@@ -4,9 +4,17 @@ import android.text.format.DateFormat
 import java.util.Calendar
 import java.util.Date
 
+/**
+ * Tien ich xu ly thoi gian cho ung dung.
+ * Phu thuoc: `Calendar`, `DateFormat`.
+ * Duoc su dung boi cac man hinh va viewmodel can dinh dang ngay.
+ */
 object DateUtils {
     /**
-     * Chuyển timestamp thành string
+    * Chuyen timestamp thanh chuoi theo dinh dang.
+    * @param timestamp Thoi gian millis.
+    * @param format Dinh dang ngay.
+    * @return Chuoi ngay da dinh dang.
      */
     fun formatDate(timestamp: Long, format: String = "dd/MM/yyyy"): String {
         val calendar = Calendar.getInstance()
@@ -15,7 +23,9 @@ object DateUtils {
     }
 
     /**
-     * Lấy timestamp của đầu ngày
+        * Lay timestamp dau ngay.
+        * @param timestamp Thoi gian millis bat ky.
+        * @return Millis dau ngay.
      */
     fun getStartOfDay(timestamp: Long): Long {
         val calendar = Calendar.getInstance()
@@ -28,7 +38,9 @@ object DateUtils {
     }
 
     /**
-     * Lấy timestamp của cuối ngày
+        * Lay timestamp cuoi ngay.
+        * @param timestamp Thoi gian millis bat ky.
+        * @return Millis cuoi ngay.
      */
     fun getEndOfDay(timestamp: Long): Long {
         val calendar = Calendar.getInstance()
@@ -41,7 +53,10 @@ object DateUtils {
     }
 
     /**
-     * Lấy timestamp của đầu tháng
+        * Lay timestamp dau thang.
+        * @param month Thang (1-12).
+        * @param year Nam.
+        * @return Millis dau thang.
      */
     fun getStartOfMonth(month: Int, year: Int): Long {
         val calendar = Calendar.getInstance()
@@ -56,7 +71,10 @@ object DateUtils {
     }
 
     /**
-     * Lấy timestamp của cuối tháng
+        * Lay timestamp cuoi thang.
+        * @param month Thang (1-12).
+        * @param year Nam.
+        * @return Millis cuoi thang.
      */
     fun getEndOfMonth(month: Int, year: Int): Long {
         val calendar = Calendar.getInstance()
@@ -73,7 +91,8 @@ object DateUtils {
     }
 
     /**
-     * Lấy tháng và năm hiện tại
+        * Lay thang va nam hien tai.
+        * @return Pair(thang, nam).
      */
     fun getCurrentMonthYear(): Pair<Int, Int> {
         val calendar = Calendar.getInstance()
@@ -81,7 +100,9 @@ object DateUtils {
     }
 
     /**
-     * Chuyển ngày thành số
+        * Lay ngay trong thang tu timestamp.
+        * @param timestamp Thoi gian millis.
+        * @return So ngay trong thang.
      */
     fun getDayOfMonth(timestamp: Long): Int {
         val calendar = Calendar.getInstance()
@@ -90,7 +111,9 @@ object DateUtils {
     }
 
     /**
-     * Chuyển tháng thành số
+        * Lay thang tu timestamp.
+        * @param timestamp Thoi gian millis.
+        * @return Thang (1-12).
      */
     fun getMonth(timestamp: Long): Int {
         val calendar = Calendar.getInstance()
@@ -99,7 +122,9 @@ object DateUtils {
     }
 
     /**
-     * Chuyển năm thành số
+        * Lay nam tu timestamp.
+        * @param timestamp Thoi gian millis.
+        * @return Nam.
      */
     fun getYear(timestamp: Long): Int {
         val calendar = Calendar.getInstance()
@@ -108,7 +133,8 @@ object DateUtils {
     }
 
     /**
-     * Lấy ngày hiện tại
+     * Lay thoi gian hien tai.
+     * @return Millis hien tai.
      */
     fun getCurrentTimestamp(): Long {
         return System.currentTimeMillis()

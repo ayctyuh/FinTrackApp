@@ -30,6 +30,20 @@ import com.fintrack.project.data.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Man hinh ca nhan.
+ * Phu thuoc: `FinTrackDatabase` va `User`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onNavigateToHome Dieu huong trang chu.
+ * @param onNavigateToEdit Mo sua ho so.
+ * @param onNavigateToSecurity Mo bao mat.
+ * @param onNavigateToBudget Mo ngan sach.
+ * @param onAddClick Mo them giao dich.
+ * @param onLogout Dang xuat.
+ * @param onNavigateToCategory Mo danh muc.
+ * @param onStatisticsClick Mo thong ke.
+ * @param onNavigateToChangePassword Mo doi mat khau.
+ */
 @Composable
 fun ProfileScreen(
     onNavigateToHome: () -> Unit,
@@ -166,6 +180,14 @@ fun ProfileScreen(
     }
 }
 
+/**
+ * Item menu trong man hinh ca nhan.
+ * @param icon Icon hien thi.
+ * @param iconBgColor Mau nen icon.
+ * @param title Tieu de.
+ * @param sub Mo ta ngan.
+ * @param onClick Callback khi bam.
+ */
 @Composable
 fun ProfileMenuItemColor(icon: ImageVector, iconBgColor: Color, title: String, sub: String, onClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

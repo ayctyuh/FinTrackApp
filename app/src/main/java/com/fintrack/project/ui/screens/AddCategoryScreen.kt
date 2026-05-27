@@ -33,6 +33,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Man hinh them danh muc.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ */
 @Composable
 fun AddCategoryScreen(
     onBackClick: () -> Unit
@@ -52,6 +58,9 @@ fun AddCategoryScreen(
     var showSuccess by remember { mutableStateOf(false) }
     var showIconPicker by remember { mutableStateOf(false) }
 
+    /**
+     * Luu danh muc va tao thong bao.
+     */
     fun saveCategory() {
         if (catName.isBlank()) {
             Toast.makeText(context, "Vui lòng nhập tên danh mục", Toast.LENGTH_SHORT).show()

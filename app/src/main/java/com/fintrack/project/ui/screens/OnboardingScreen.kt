@@ -23,6 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fintrack.project.R
 
+/**
+ * Man hinh gioi thieu tinh nang.
+ * Phu thuoc: tai nguyen anh trong `R`.
+ * Duoc su dung boi luong khoi dong.
+ * @param onNextClick Di tiep.
+ * @param onBackClick Quay lai.
+ */
 @Composable
 fun OnboardingScreen(
     onNextClick: () -> Unit,
@@ -151,6 +158,13 @@ fun OnboardingScreen(
     }
 }
 
+/**
+ * Item hien thi tinh nang.
+ * @param icon Icon tinh nang.
+ * @param iconBgColor Mau nen icon.
+ * @param title Tieu de.
+ * @param description Mo ta ngan.
+ */
 @Composable
 fun FeatureItem(icon: ImageVector, iconBgColor: Color, title: String, description: String) {
     Card(

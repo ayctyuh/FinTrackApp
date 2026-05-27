@@ -49,6 +49,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh sua giao dich.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param transactionId ID giao dich can sua.
+ * @param onBackClick Quay lai.
+ * @param onSaveSuccess Callback sau khi luu thanh cong.
+ */
 @Composable
 fun EditTransactionScreen(
     transactionId: Int, // <-- Nhận ID giao dịch cần sửa
@@ -125,6 +133,9 @@ fun EditTransactionScreen(
 
     val currentCategories = if (isIncome) incomeCategories else expenseCategories
 
+    /**
+     * Cap nhat giao dich va tinh lai so du.
+     */
     fun performUpdateTransaction() {
         val amount = amountText.toDoubleOrNull() ?: 0.0
         if (amount <= 0 || selectedCategoryId == null || transactionToEdit == null) return
@@ -154,7 +165,9 @@ fun EditTransactionScreen(
         }
     }
 
-    // Gửi SMS thật
+    /**
+     * Gui OTP qua SMS.
+     */
     fun sendOtpSms() {
         generatedOtp = (100000..999999).random().toString()
         val phoneToSend = "5554" // Sửa thành số thật nếu chạy trên máy thật
@@ -179,6 +192,9 @@ fun EditTransactionScreen(
         else Toast.makeText(context, "Cần cấp quyền SMS để nhận mã bảo mật!", Toast.LENGTH_SHORT).show()
     }
 
+    /**
+     * Kiem tra quyen va gui OTP.
+     */
     fun checkAndSendOtp() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
             sendOtpSms()
@@ -187,6 +203,9 @@ fun EditTransactionScreen(
         }
     }
 
+    /**
+     * Xu ly bam nut luu, co the mo PIN/OTP.
+     */
     fun onSaveClick() {
         val amount = amountText.toDoubleOrNull() ?: 0.0
         if (amount <= 0 || selectedCategoryId == null) return

@@ -42,19 +42,45 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
 
+/**
+ * Loai bieu do thong ke.
+ * Duoc su dung boi `StatisticsScreen`.
+ */
 enum class ChartType(val title: String, val subtitle: String, val icon: ImageVector, val color: Color) {
     OVERVIEW("Tổng hợp", "Thu & chi tổng quan", Icons.Default.BarChart, Color(0xFF2E5BFF)),
     TREND("Xu hướng", "Thu & chi theo xu hướng thời gian", Icons.Default.ShowChart, Color(0xFF0EA5E9)),
     CATEGORY("Danh mục", "Chi tiêu theo từng danh mục", Icons.Default.Hexagon, Color(0xFFA855F7))
 }
 
+/**
+ * Bo loc thoi gian thong ke.
+ * Duoc su dung boi `StatisticsScreen`.
+ */
 enum class TimeFilter(val label: String) {
     WEEK("Tuần"), MONTH("Tháng"), YEAR("Năm")
 }
 
+/**
+ * Diem du lieu cho bieu do thu/chi.
+ */
 data class ChartDataPoint(val label: String, val income: Float, val expense: Float)
+
+/**
+ * Du lieu tong hop theo danh muc.
+ */
 data class CategoryDataPoint(val categoryName: String, val expense: Float)
 
+/**
+ * Man hinh thong ke tong quan.
+ * Phu thuoc: `FinTrackDatabase` va `CurrencyUtils`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onNavigateToHome Dieu huong ve trang chu.
+ * @param onNavigateToProfile Dieu huong ca nhan.
+ * @param onNavigateToBudget Dieu huong ngan sach.
+ * @param onAddClick Mo them giao dich.
+ * @param onNavigateToReport Mo bao cao.
+ * @param onNavigateToDetail Mo chi tiet so sanh.
+ */
 @Composable
 fun StatisticsScreen(
     onNavigateToHome: () -> Unit,
@@ -80,6 +106,11 @@ fun StatisticsScreen(
     var dateLabel by remember { mutableStateOf("") }
     var categoriesMap by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
 
+    /**
+     * Tai du lieu thong ke theo bo loc thoi gian.
+     * @param userId ID nguoi dung.
+     * @param timeFilter Bo loc thoi gian.
+     */
     suspend fun loadStatisticsData(userId: Int, timeFilter: TimeFilter) {
         val db = FinTrackDatabase.getInstance(context)
         val transactionDao = db.transactionDao()
@@ -454,6 +485,10 @@ fun StatisticsScreen(
     }
 }
 
+/**
+ * Bieu do cot tong hop thu/chi.
+ * @param data Du lieu bieu do.
+ */
 @Composable
 fun OverviewBarChart(data: List<ChartDataPoint>) {
     if (data.isEmpty() || data.all { it.income == 0f && it.expense == 0f }) {
@@ -483,6 +518,10 @@ fun OverviewBarChart(data: List<ChartDataPoint>) {
     }
 }
 
+/**
+ * Bieu do duong xu huong.
+ * @param data Du lieu bieu do.
+ */
 @Composable
 fun TrendLineChart(data: List<ChartDataPoint>) {
     if (data.isEmpty() || data.all { it.income == 0f && it.expense == 0f }) {
@@ -530,6 +569,10 @@ fun TrendLineChart(data: List<ChartDataPoint>) {
     }
 }
 
+/**
+ * Bieu do cot theo danh muc.
+ * @param data Du lieu danh muc.
+ */
 @Composable
 fun CategoryBarChart(data: List<CategoryDataPoint>) {
     if (data.isEmpty()) {
@@ -594,6 +637,14 @@ fun CategoryBarChart(data: List<CategoryDataPoint>) {
     }
 }
 
+/**
+ * The tong hop so lieu thu/chi.
+ * @param title Tieu de.
+ * @param amount So tien.
+ * @param icon Icon.
+ * @param color Mau chu dao.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 fun SummaryCard(title: String, amount: Double, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
     Card(

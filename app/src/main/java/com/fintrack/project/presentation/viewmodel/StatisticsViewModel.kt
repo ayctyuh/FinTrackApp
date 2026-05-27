@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.*
 
+/**
+ * Diem du lieu so sanh theo ngay.
+ * Duoc su dung boi `StatisticsViewModel` va man hinh thong ke.
+ */
 data class ComparisonDataPoint(
     val dateLabel: String,
     val income: Double,
@@ -18,6 +22,10 @@ data class ComparisonDataPoint(
     val timestamp: Long
 )
 
+/**
+ * Du lieu so sanh theo tuan.
+ * Duoc su dung boi bieu do so sanh.
+ */
 data class WeeklyComparisonData(
     val weekLabel: String,
     val incomeA: Double,
@@ -26,6 +34,10 @@ data class WeeklyComparisonData(
     val expenseB: Double
 )
 
+/**
+ * Trang thai UI cho thong ke.
+ * Duoc su dung boi `StatisticsScreen`.
+ */
 data class StatisticsState(
     val comparisonData: List<ComparisonDataPoint> = emptyList(),
     val weeklyComparison: List<WeeklyComparisonData> = emptyList(),
@@ -42,6 +54,11 @@ data class StatisticsState(
     val isLoading: Boolean = false
 )
 
+/**
+ * ViewModel thong ke thu/chi.
+ * Phu thuoc: `TransactionRepository`.
+ * Duoc su dung boi `StatisticsScreen` va `ChiTietBieuDoScreen`.
+ */
 class StatisticsViewModel(
     private val transactionRepository: TransactionRepository
 ) : ViewModel() {
@@ -49,6 +66,12 @@ class StatisticsViewModel(
     private val _uiState = MutableStateFlow(StatisticsState())
     val uiState: StateFlow<StatisticsState> = _uiState.asStateFlow()
 
+    /**
+     * Tai du lieu so sanh theo ngay.
+     * @param userId ID nguoi dung.
+     * @param startDate Bat dau.
+     * @param endDate Ket thuc.
+     */
     fun loadComparisonData(userId: Int, startDate: Long, endDate: Long) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -94,6 +117,14 @@ class StatisticsViewModel(
         }
     }
 
+    /**
+     * Tai du lieu so sanh theo thang.
+     * @param userId ID nguoi dung.
+     * @param monthA Thang moc A.
+     * @param yearA Nam moc A.
+     * @param monthB Thang moc B.
+     * @param yearB Nam moc B.
+     */
     fun loadMonthlyComparison(userId: Int, monthA: Int, yearA: Int, monthB: Int, yearB: Int) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -141,6 +172,11 @@ class StatisticsViewModel(
         }
     }
 
+    /**
+     * Tinh timestamp dau thang.
+     * @param month Thang (1-12).
+     * @param year Nam.
+     */
     private fun getStartOfMonth(month: Int, year: Int): Long {
         val cal = Calendar.getInstance()
         cal.set(year, month - 1, 1, 0, 0, 0)
@@ -148,6 +184,11 @@ class StatisticsViewModel(
         return cal.timeInMillis
     }
 
+    /**
+     * Tinh timestamp cuoi thang.
+     * @param month Thang (1-12).
+     * @param year Nam.
+     */
     private fun getEndOfMonth(month: Int, year: Int): Long {
         val cal = Calendar.getInstance()
         cal.set(year, month - 1, 1, 23, 59, 59)
@@ -156,6 +197,12 @@ class StatisticsViewModel(
         return cal.timeInMillis
     }
 
+    /**
+     * Lay khoang thoi gian theo tuan trong thang.
+     * @param week So tuan (1-4).
+     * @param month Thang.
+     * @param year Nam.
+     */
     private fun getWeekRange(week: Int, month: Int, year: Int): Pair<Long, Long> {
         val cal = Calendar.getInstance()
         cal.set(year, month - 1, 1, 0, 0, 0)
@@ -177,6 +224,11 @@ class StatisticsViewModel(
         return Pair(start, end)
     }
 
+    /**
+     * Kiem tra cung ngay.
+     * @param cal1 Calendar 1.
+     * @param cal2 Calendar 2.
+     */
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)

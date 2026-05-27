@@ -35,6 +35,14 @@
     import java.util.*
 
     @OptIn(ExperimentalMaterial3Api::class)
+    /**
+     * Man hinh lich su giao dich.
+     * Phu thuoc: `FinTrackDatabase` va `BankImportButton`.
+     * Duoc su dung boi `MainActivity`.
+     * @param onBackClick Callback quay lai.
+     * @param onAddTransactionClick Callback them giao dich (khong dung).
+     * @param onEditTransactionClick Callback sua giao dich.
+     */
     @Composable
     fun TransactionHistoryScreen(
         onBackClick: () -> Unit,
@@ -60,6 +68,11 @@
         val startDateText = dateRangePickerState.selectedStartDateMillis?.let { formatter.format(Date(it)) } ?: "Từ ngày"
         val endDateText = dateRangePickerState.selectedEndDateMillis?.let { formatter.format(Date(it)) } ?: "Đến ngày"
 
+        /**
+         * Tai danh sach giao dich theo khoang thoi gian.
+         * @param startMillis Bat dau.
+         * @param endMillis Ket thuc.
+         */
         suspend fun loadTransactions(startMillis: Long? = null, endMillis: Long? = null) {
             if (currentUserId != -1) {
                 val db = FinTrackDatabase.getInstance(context)
@@ -243,6 +256,12 @@
         }
     }
 
+    /**
+     * O chon ngay trong bo loc.
+     * @param text Chuoi hien thi.
+     * @param modifier Modifier cho layout.
+     * @param onClick Callback mo date picker.
+     */
     @Composable
     fun DateBox(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
         Box(

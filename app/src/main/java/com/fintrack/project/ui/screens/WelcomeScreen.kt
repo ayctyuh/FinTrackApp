@@ -22,6 +22,14 @@ import androidx.compose.ui.unit.sp
 import com.fintrack.project.R
 import kotlinx.coroutines.delay
 
+/**
+ * Man hinh chao mung.
+ * Phu thuoc: tai nguyen logo trong `R`.
+ * Duoc su dung boi luong khoi dong.
+ * @param onLoginClick Mo dang nhap.
+ * @param onSignupClick Mo dang ky.
+ * @param onForgotPasswordClick Mo quen mat khau.
+ */
 @Composable
 fun WelcomeScreen(
     onLoginClick: () -> Unit = {},

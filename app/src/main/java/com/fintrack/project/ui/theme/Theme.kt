@@ -33,6 +33,14 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+/**
+ * Theme tong cho ung dung.
+ * Phu thuoc: Material3 color scheme.
+ * Duoc su dung boi `MainActivity`.
+ * @param darkTheme Co dung dark theme khong.
+ * @param dynamicColor Su dung dynamic color neu ho tro.
+ * @param content Noi dung Compose.
+ */
 @Composable
 fun FinTrackProjectTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

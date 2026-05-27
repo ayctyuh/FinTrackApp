@@ -4,33 +4,65 @@ import androidx.room.*
 import com.fintrack.project.data.model.Notification
 
 @Dao
+/**
+ * DAO cho bang thong bao.
+ * Phu thuoc: Room va entity `Notification`.
+ * Duoc su dung boi `NotificationRepository`.
+ */
 interface NotificationDao {
+    /**
+     * Them thong bao.
+     * @param notification Doi tuong thong bao.
+     */
     @Insert
     suspend fun insertNotification(notification: Notification): Long
 
+    /**
+     * Cap nhat thong bao.
+     * @param notification Doi tuong thong bao.
+     */
     @Update
     suspend fun updateNotification(notification: Notification)
 
+    /**
+     * Xoa thong bao.
+     * @param notification Doi tuong thong bao.
+     */
     @Delete
     suspend fun deleteNotification(notification: Notification)
 
-    // Lấy tất cả thông báo của 1 user, sắp xếp mới nhất lên đầu
+    /**
+     * Lay thong bao cua user, sap xep moi nhat.
+     * @param userId ID nguoi dung.
+     */
     @Query("SELECT * FROM notifications WHERE userId = :userId ORDER BY createdAt DESC")
     suspend fun getUserNotifications(userId: Int): List<Notification>
 
-    // Lấy số lượng thông báo CHƯA ĐỌC
+    /**
+     * Lay so luong thong bao chua doc.
+     * @param userId ID nguoi dung.
+     */
     @Query("SELECT COUNT(*) FROM notifications WHERE userId = :userId AND isRead = 0")
     suspend fun getUnreadCount(userId: Int): Int
 
-    // Đánh dấu TẤT CẢ đã đọc
+    /**
+     * Danh dau tat ca thong bao la da doc.
+     * @param userId ID nguoi dung.
+     */
     @Query("UPDATE notifications SET isRead = 1 WHERE userId = :userId")
     suspend fun markAllAsRead(userId: Int)
 
-    // Đánh dấu 1 thông báo là đã đọc
+    /**
+     * Danh dau thong bao la da doc.
+     * @param notificationId ID thong bao.
+     */
     @Query("UPDATE notifications SET isRead = 1 WHERE id = :notificationId")
     suspend fun markAsRead(notificationId: Int)
 
-    // Xóa tất cả thông báo của user
+    /**
+     * Xoa tat ca thong bao cua user.
+     * @param userId ID nguoi dung.
+     */
     @Query("DELETE FROM notifications WHERE userId = :userId")
     suspend fun deleteUserNotifications(userId: Int)
 }

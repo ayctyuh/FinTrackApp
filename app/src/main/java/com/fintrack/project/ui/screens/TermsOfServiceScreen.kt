@@ -17,6 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh dieu khoan su dung.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ */
 @Composable
 fun TermsOfServiceScreen(onBackClick: () -> Unit) {
     Scaffold(

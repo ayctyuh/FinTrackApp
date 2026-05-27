@@ -24,6 +24,18 @@ import com.fintrack.project.data.database.FinTrackDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Man hinh bao mat.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ * @param onHomeClick Ve trang chu.
+ * @param onNavigateToBudget Mo ngan sach.
+ * @param onNavigateToStatistics Mo thong ke.
+ * @param onNavigateToPinSetup Mo thiet lap PIN.
+ * @param onNavigateToTerms Mo dieu khoan.
+ * @param onAddClick Mo them giao dich.
+ */
 @Composable
 fun SecurityScreen(
     onBackClick: () -> Unit,

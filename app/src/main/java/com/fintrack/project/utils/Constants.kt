@@ -1,5 +1,9 @@
 package com.fintrack.project.utils
 
+/**
+ * Tap hop hang so dung chung.
+ * Duoc su dung boi cac lop cau hinh va truy cap du lieu.
+ */
 object Constants {
     // Database
     const val DATABASE_NAME = "fintrack_database"

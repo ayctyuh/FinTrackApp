@@ -34,6 +34,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Man hinh sua danh muc.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param categoryId ID danh muc can sua.
+ * @param onBackClick Quay lai.
+ */
 @Composable
 fun EditCategoryScreen(
     categoryId: Int,
@@ -71,6 +78,9 @@ fun EditCategoryScreen(
         }
     }
 
+    /**
+     * Cap nhat thong tin danh muc.
+     */
     fun updateCategory() {
         if (catName.isBlank()) {
             Toast.makeText(context, "Vui lòng nhập tên danh mục", Toast.LENGTH_SHORT).show()
@@ -89,6 +99,9 @@ fun EditCategoryScreen(
         }
     }
 
+    /**
+     * Xoa danh muc va tao thong bao.
+     */
     fun deleteCategory() {
         scope.launch {
             withContext(Dispatchers.IO) {

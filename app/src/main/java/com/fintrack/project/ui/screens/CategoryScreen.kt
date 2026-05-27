@@ -33,6 +33,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 
+/**
+ * Man hinh danh sach danh muc.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ * @param onHomeClick Ve trang chu.
+ * @param onAddClick Mo them giao dich.
+ * @param onNavigateToBudget Mo ngan sach.
+ * @param onNavigateToStatistics Mo thong ke.
+ * @param onNavigateToAddCategory Mo them danh muc.
+ * @param onCategoryClick Mo sua danh muc.
+ */
 @Composable
 fun CategoryScreen(
     onBackClick: () -> Unit,
@@ -152,7 +164,11 @@ fun CategoryScreen(
     }
 }
 
-// CÁC HÀM PHỤ TRỢ (Đã đổi tên)
+/**
+ * Chuyen mau string sang Color.
+ * @param colorString Chuoi mau dang #RRGGBB.
+ * @param defaultColor Mau mac dinh.
+ */
 fun resolveCategoryColor(colorString: String?, defaultColor: Color): Color {
     return try {
         if (colorString != null && colorString.startsWith("#")) {
@@ -163,6 +179,10 @@ fun resolveCategoryColor(colorString: String?, defaultColor: Color): Color {
     }
 }
 
+/**
+ * Chon icon theo khoa danh muc.
+ * @param iconKey Khoa icon.
+ */
 fun resolveCategoryIcon(iconKey: String?): ImageVector {
     return when (iconKey) {
         "ic_food" -> Icons.Default.Fastfood
@@ -201,6 +221,12 @@ fun resolveCategoryIcon(iconKey: String?): ImageVector {
     }
 }
 
+/**
+ * Flow layout don gian cho danh sach item.
+ * @param modifier Modifier cho layout.
+ * @param spacing Khoang cach giua item.
+ * @param content Noi dung con.
+ */
 @Composable
 fun CategoryFlowLayout(modifier: Modifier = Modifier, spacing: Dp = 8.dp, content: @Composable () -> Unit) {
     Layout(content = content, modifier = modifier) { measurables, constraints ->

@@ -5,7 +5,18 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 
+/**
+ * Tien ich xu ly danh muc (mau va icon).
+ * Phu thuoc: Material Icons.
+ * Duoc su dung boi cac man hinh danh muc/bieu do.
+ */
 object CategoryUtils {
+    /**
+     * Chuyen mau string sang Color.
+     * @param colorString Chuoi mau dang #RRGGBB.
+     * @param defaultColor Mau mac dinh khi loi.
+     * @return Color da parse.
+     */
     fun resolveCategoryColor(colorString: String?, defaultColor: Color): Color {
         return try {
             if (colorString != null && colorString.startsWith("#")) {
@@ -16,6 +27,11 @@ object CategoryUtils {
         }
     }
 
+    /**
+     * Chon icon theo khoa danh muc.
+     * @param iconKey Khoa icon hoac ten danh muc.
+     * @return ImageVector tuong ung.
+     */
     fun resolveCategoryIcon(iconKey: String?): ImageVector {
         return when (iconKey) {
             "ic_food", "Ăn uống" -> Icons.Default.Fastfood

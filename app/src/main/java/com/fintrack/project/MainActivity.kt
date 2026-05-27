@@ -24,7 +24,16 @@ import com.fintrack.project.data.model.CategoryType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * Activity chinh khoi tao Compose va dieu huong.
+ * Phu thuoc: `ServiceLocator`, cac ViewModel va man hinh UI.
+ * Duoc su dung boi Android launcher.
+ */
 class MainActivity : ComponentActivity() {
+    /**
+     * Khoi tao UI Compose va state dieu huong.
+     * @param savedInstanceState State phuc hoi (neu co).
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -293,6 +302,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Cac trang thai man hinh trong ung dung.
+ * Duoc su dung boi `MainActivity` de dieu huong.
+ */
 enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
     NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE,

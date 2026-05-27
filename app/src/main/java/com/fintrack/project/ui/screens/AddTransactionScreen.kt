@@ -50,6 +50,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh them giao dich.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ * @param onHomeClick Ve trang chu.
+ */
 @Composable
 fun AddTransactionScreen(
     onBackClick: () -> Unit,
@@ -102,6 +109,9 @@ fun AddTransactionScreen(
     }
     val currentCategories = if (isIncome) incomeCategories else expenseCategories
 
+    /**
+     * Luu giao dich va tao thong bao lien quan.
+     */
     fun performSaveTransaction() {
         val amount = amountText.toDoubleOrNull() ?: 0.0
         if (amount <= 0 || selectedCategoryId == null) return
@@ -218,7 +228,9 @@ fun AddTransactionScreen(
         }
     }
 
-    // Gửi SMS thật
+    /**
+     * Gui OTP qua SMS.
+     */
     fun sendOtpSms() {
         generatedOtp = (100000..999999).random().toString()
         val phoneToSend = "5554" // Sửa thành số thật nếu chạy trên máy thật
@@ -246,6 +258,9 @@ fun AddTransactionScreen(
         }
     }
 
+    /**
+     * Kiem tra quyen va gui OTP.
+     */
     fun checkAndSendOtp() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
             sendOtpSms()
@@ -254,6 +269,9 @@ fun AddTransactionScreen(
         }
     }
 
+    /**
+     * Xu ly bam nut luu, co the mo PIN/OTP.
+     */
     fun onSaveClick() {
         val amount = amountText.toDoubleOrNull() ?: 0.0
         if (amount <= 0 || selectedCategoryId == null) return
@@ -514,7 +532,10 @@ fun AddTransactionScreen(
     }
 }
 
-// BỘ TỪ ĐIỂN DỊCH ICON LOCAL CỰC MẠNH
+/**
+ * Chon icon theo khoa danh muc local.
+ * @param iconKey Khoa icon.
+ */
 fun resolveLocalIcon(iconKey: String?): ImageVector {
     return when (iconKey) {
         "ic_food", "Ăn uống" -> Icons.Default.Fastfood
@@ -540,6 +561,12 @@ fun resolveLocalIcon(iconKey: String?): ImageVector {
     }
 }
 
+/**
+ * Ban phim so cho PIN/OTP.
+ * @param onNumberClick Callback chon so.
+ * @param onBackspaceClick Callback xoa so.
+ * @param isOtp Co la OTP hay khong.
+ */
 @Composable
 fun PinPad(onNumberClick: (Int) -> Unit, onBackspaceClick: () -> Unit, isOtp: Boolean = false) {
     val padModifier = Modifier.size(if(isOtp) 48.dp else 56.dp).clip(CircleShape)
@@ -560,6 +587,12 @@ fun PinPad(onNumberClick: (Int) -> Unit, onBackspaceClick: () -> Unit, isOtp: Bo
     }
 }
 
+/**
+ * Nut so trong ban phim.
+ * @param text Chu so hien thi.
+ * @param modifier Modifier cho nut.
+ * @param onClick Callback khi bam.
+ */
 @Composable
 fun PinNumberButton(text: String, modifier: Modifier, onClick: () -> Unit) {
     Box(modifier = modifier.clickable(onClick = onClick).background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {
@@ -567,6 +600,13 @@ fun PinNumberButton(text: String, modifier: Modifier, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Dong thong tin mo ta chi tiet.
+ * @param label Nhan ben trai.
+ * @param value Gia tri ben phai.
+ * @param valueColor Mau gia tri.
+ * @param isBold In dam gia tri.
+ */
 @Composable
 fun DetailRow(label: String, value: String, valueColor: Color, isBold: Boolean = false) {
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {

@@ -31,6 +31,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Man hinh chinh sua ho so nguoi dung.
+ * Phu thuoc: `FinTrackDatabase`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Quay lai.
+ * @param onHomeClick Ve trang chu.
+ * @param onNavigateToBudget Mo ngan sach.
+ * @param onNavigateToStatistics Mo thong ke.
+ * @param onAddClick Mo them giao dich.
+ */
 @Composable
 fun EditProfileScreen(
     onBackClick: () -> Unit,
@@ -184,6 +194,14 @@ fun EditProfileScreen(
     }
 }
 
+/**
+ * Truong nhap thong tin ho so.
+ * @param label Nhan truong.
+ * @param value Gia tri hien tai.
+ * @param onValueChange Callback doi gia tri.
+ * @param readOnly Co chi doc hay khong.
+ * @param placeholder Chu goi y.
+ */
 @Composable
 fun ProfileTextField(label: String, value: String, onValueChange: (String) -> Unit, readOnly: Boolean = false, placeholder: String = "") {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {

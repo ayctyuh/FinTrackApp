@@ -20,6 +20,12 @@ import kotlinx.coroutines.delay
 
 val SplashBlue = Color(0xFF1D4ED8)
 
+/**
+ * Man hinh splash khi khoi dong.
+ * Phu thuoc: tai nguyen logo trong `R`.
+ * Duoc su dung boi luong khoi dong.
+ * @param onSplashComplete Callback khi ket thuc splash.
+ */
 @Composable
 fun SplashScreen(
     onSplashComplete: () -> Unit

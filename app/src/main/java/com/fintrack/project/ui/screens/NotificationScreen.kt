@@ -35,6 +35,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Man hinh thong bao.
+ * Phu thuoc: `FinTrackDatabase` va `Notification`.
+ * Duoc su dung boi `MainActivity`.
+ * @param onBackClick Callback quay lai.
+ */
 @Composable
 fun NotificationScreen(
     onBackClick: () -> Unit
@@ -253,6 +259,11 @@ fun NotificationScreen(
 // ────────────────────────────────────────────────────────────────
 // POPUP CHI TIẾT THÔNG BÁO CHUNG
 // ────────────────────────────────────────────────────────────────
+/**
+ * Dialog chi tiet thong bao chung.
+ * @param notification Thong bao can xem.
+ * @param onDismiss Dong dialog.
+ */
 @Composable
 fun NotificationDetailDialog(
     notification: Notification,
@@ -351,6 +362,11 @@ fun NotificationDetailDialog(
     }
 }
 
+/**
+ * Dialog chi tiet canh bao ngan sach.
+ * @param notification Thong bao canh bao.
+ * @param onDismiss Dong dialog.
+ */
 @Composable
 fun BudgetAlertDetailDialog(
     notification: Notification,
@@ -428,8 +444,15 @@ fun BudgetAlertDetailDialog(
     }
 }
 
+/**
+ * Du lieu icon theo loai thong bao.
+ */
 data class NotificationIconData(val icon: ImageVector, val bgColor: Color)
 
+/**
+ * Lay icon theo loai thong bao.
+ * @param type Loai thong bao.
+ */
 fun getIconDataForType(type: NotificationType): NotificationIconData {
     return when (type) {
         NotificationType.REMINDER -> NotificationIconData(Icons.Default.Notifications, Color(0xFF2E5BFF))
@@ -439,6 +462,10 @@ fun getIconDataForType(type: NotificationType): NotificationIconData {
     }
 }
 
+/**
+ * Dinh dang thoi gian thong bao.
+ * @param timestamp Thoi gian millis.
+ */
 fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale("vi", "VN"))
     return sdf.format(Date(timestamp))
