@@ -43,6 +43,13 @@ import java.util.*
 //  Nút "Nhập từ thông báo" – đặt trong TransactionHistoryScreen
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Nut mo bottom sheet nhap giao dich tu thong bao.
+ * Phu thuoc: `BankNotificationListenerService`.
+ * Duoc su dung boi man hinh lich su giao dich.
+ * @param modifier Modifier cho layout.
+ * @param onImported Callback khi nhap xong.
+ */
 @Composable
 fun BankImportButton(
     modifier: Modifier = Modifier,
@@ -127,6 +134,13 @@ fun BankImportButton(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Bottom sheet danh sach giao dich cho xac nhan.
+ * Phu thuoc: `FinTrackDatabase`, `BankNotificationListenerService`.
+ * Duoc su dung boi `BankImportButton`.
+ * @param onDismiss Dong sheet.
+ * @param onImported Callback khi nhap xong tat ca.
+ */
 @Composable
 fun BankNotificationImportSheet(
     onDismiss: () -> Unit,
@@ -364,6 +378,15 @@ fun BankNotificationImportSheet(
 //  Card một giao dịch đang chờ xác nhận
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Card hien thi mot giao dich cho xac nhan.
+ * @param txn Giao dich da parse.
+ * @param categories Danh sach danh muc co the chon.
+ * @param selectedCategoryId ID danh muc dang chon.
+ * @param onCategorySelected Callback chon danh muc.
+ * @param onConfirm Callback xac nhan nhap giao dich.
+ * @param onSkip Callback bo qua giao dich.
+ */
 @Composable
 private fun PendingTransactionCard(
     txn: ParsedBankTransaction,
@@ -512,6 +535,11 @@ private fun PendingTransactionCard(
 //  Dialog yêu cầu cấp quyền Notification Access
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Dialog yeu cau cap quyen doc thong bao.
+ * @param onConfirm Callback mo cai dat.
+ * @param onDismiss Callback dong dialog.
+ */
 @Composable
 fun NotificationPermissionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
@@ -557,12 +585,26 @@ fun NotificationPermissionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 //  Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Dinh dang tien VND.
+ * @param amount So tien.
+ */
 private fun formatCurrencyVN(amount: Double): String {
     val formatter = NumberFormat.getNumberInstance(Locale("vi", "VN"))
     return "${formatter.format(amount.toLong())} đ"
 }
 
 // --- HÀM KIỂM TRA NGÂN SÁCH ---
+/**
+ * Kiem tra vuot nguong ngan sach va tao thong bao.
+ * @param context Context de truy cap tai nguyen.
+ * @param db Room database.
+ * @param userId ID nguoi dung.
+ * @param categoryId ID danh muc.
+ * @param amount So tien giao dich.
+ * @param transactionDate Thoi gian giao dich.
+ * @param categoryName Ten danh muc.
+ */
 private suspend fun checkBudgetAlert(
     context: Context,
     db: FinTrackDatabase,

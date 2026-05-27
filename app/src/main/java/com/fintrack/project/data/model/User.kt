@@ -4,6 +4,11 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "users")
+/**
+ * Entity nguoi dung trong Room.
+ * Phu thuoc: Room annotations.
+ * Duoc su dung boi `UserDao` va `FinTrackDatabase`.
+ */
 data class User(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,

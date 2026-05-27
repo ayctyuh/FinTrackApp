@@ -37,6 +37,17 @@ import com.fintrack.project.utils.CurrencyUtils
 import java.util.*
 import kotlin.text.get
 
+/**
+ * Man hinh bao cao thang/nam cho ngan sach.
+ * Phu thuoc: `BudgetViewModel`, du lieu `Category`.
+ * Duoc goi tu luong dieu huong man hinh bao cao.
+ * @param userId ID nguoi dung.
+ * @param viewModel ViewModel cung cap du lieu bao cao.
+ * @param categories Danh sach danh muc hien thi.
+ * @param onBackClick Su kien quay lai.
+ * @return Khong tra ve.
+ * Logic: chon nam/thang, tai du lieu va dieu huong view nam/chi tiet.
+ */
 @Composable
 fun MonthlyReportScreen(
     userId: Int,
@@ -85,6 +96,16 @@ fun MonthlyReportScreen(
     }
 }
 
+/**
+ * View tong hop bao cao theo nam.
+ * @param year Nam dang xem.
+ * @param summaryList Du lieu tong hop theo thang.
+ * @param onBackClick Su kien quay lai.
+ * @param onPrevYear Chuyen ve nam truoc.
+ * @param onNextYear Chuyen sang nam sau.
+ * @param onMonthClick Chon thang de xem chi tiet.
+ * @return Khong tra ve.
+ */
 @Composable
 fun YearlyReportView(
     year: Int,
@@ -159,6 +180,20 @@ fun YearlyReportView(
     }
 }
 
+/**
+ * View chi tiet bao cao theo thang.
+ * @param month Thang dang xem.
+ * @param year Nam dang xem.
+ * @param totalLimit Han muc ngan sach tong.
+ * @param spentByCategory Chi tieu theo danh muc.
+ * @param categoryBudgets Han muc theo danh muc.
+ * @param incomeByCategory Thu nhap theo danh muc.
+ * @param categories Danh sach danh muc.
+ * @param transactionCount So giao dich trong thang.
+ * @param onBack Su kien quay lai danh sach thang.
+ * @return Khong tra ve.
+ * Logic: tinh tong thu/chi, ti le su dung va hien thi bang chi tiet.
+ */
 @Composable
 fun MonthlyDetailView(
     month: Int,
@@ -333,6 +368,15 @@ fun MonthlyDetailView(
     }
 }
 
+/**
+ * Dong chi tiet chi tieu theo danh muc.
+ * @param name Ten danh muc.
+ * @param limit Han muc danh muc.
+ * @param spent So tien da chi.
+ * @param icon Icon danh muc.
+ * @param color Mau chu dao.
+ * @return Khong tra ve.
+ */
 @Composable
 fun CategoryDetailRow(name: String, limit: Double, spent: Double, icon: ImageVector, color: Color) {
     // 1. Tính toán tỷ lệ để quyết định màu sắc
@@ -371,6 +415,14 @@ fun CategoryDetailRow(name: String, limit: Double, spent: Double, icon: ImageVec
     }
 }
 
+/**
+ * Dong chi tiet thu nhap theo danh muc.
+ * @param name Ten danh muc.
+ * @param amount So tien thu.
+ * @param icon Icon danh muc.
+ * @param color Mau chu dao.
+ * @return Khong tra ve.
+ */
 @Composable
 fun IncomeCategoryRow(name: String, amount: Double, icon: ImageVector, color: Color) {
     Row(
@@ -393,6 +445,14 @@ fun IncomeCategoryRow(name: String, amount: Double, icon: ImageVector, color: Co
     }
 }
 
+/**
+ * Hang thong ke voi thanh tien do.
+ * @param label Nhan hien thi.
+ * @param value Gia tri dang chuoi.
+ * @param color Mau bieu thi.
+ * @param progress Ti le tien do (0-1).
+ * @return Khong tra ve.
+ */
 @Composable
 fun ReportRow(label: String, value: String, color: Color, progress: Float) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
@@ -405,6 +465,14 @@ fun ReportRow(label: String, value: String, color: Color, progress: Float) {
     }
 }
 
+/**
+ * O thong ke nho trong header.
+ * @param label Tieu de.
+ * @param value Gia tri hien thi.
+ * @param color Mau chu.
+ * @param modifier Modifier cho layout.
+ * @return Khong tra ve.
+ */
 @Composable
 fun StatBoxSmall(label: String, value: String, color: Color, modifier: Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -413,6 +481,15 @@ fun StatBoxSmall(label: String, value: String, color: Color, modifier: Modifier)
     }
 }
 
+/**
+ * Chip trang thai theo thang.
+ * @param count So luong thang theo trang thai.
+ * @param label Nhan trang thai.
+ * @param bg Mau nen.
+ * @param fg Mau noi dung.
+ * @param modifier Modifier cho layout.
+ * @return Khong tra ve.
+ */
 @Composable
 fun StatusChipSquare(count: Int, label: String, bg: Color, fg: Color, modifier: Modifier) {
     Card(modifier = modifier.height(60.dp), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
@@ -427,6 +504,12 @@ fun StatusChipSquare(count: Int, label: String, bg: Color, fg: Color, modifier: 
     }
 }
 
+/**
+ * The thang trong luoi nam.
+ * @param item Du lieu tong hop cua thang.
+ * @param onClick Su kien chon thang.
+ * @return Khong tra ve.
+ */
 @Composable
 fun MonthGridCard(item: MonthSummary, onClick: () -> Unit) {
     val isCurrent = Calendar.getInstance().get(Calendar.MONTH) + 1 == item.month

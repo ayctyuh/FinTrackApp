@@ -15,7 +15,7 @@ import com.fintrack.project.data.model.Notification // <-- Thêm dòng này
 import com.fintrack.project.data.model.Transaction
 import com.fintrack.project.data.model.User
 
-@Database(
+@Database( // Room: khai bao database va danh sach entity
     entities = [
         User::class,
         Category::class,
@@ -26,20 +26,54 @@ import com.fintrack.project.data.model.User
     version = 7,
     exportSchema = false
 )
+/**
+ * Room database tong the cua ung dung.
+ * Phu thuoc: Room, cac entity va DAO.
+ * Duoc su dung boi ServiceLocator/Repository de lay DAO.
+ */
 abstract class FinTrackDatabase : RoomDatabase() {
+    /**
+     * Lay `UserDao` tu database.
+     * @return DAO quan ly bang user.
+     */
     abstract fun userDao(): UserDao
+
+    /**
+     * Lay `CategoryDao` tu database.
+     * @return DAO quan ly bang category.
+     */
     abstract fun categoryDao(): CategoryDao
+
+    /**
+     * Lay `TransactionDao` tu database.
+     * @return DAO quan ly bang transaction.
+     */
     abstract fun transactionDao(): TransactionDao
+
+    /**
+     * Lay `BudgetDao` tu database.
+     * @return DAO quan ly bang budget.
+     */
     abstract fun budgetDao(): BudgetDao
+
+    /**
+     * Lay `NotificationDao` tu database.
+     * @return DAO quan ly bang notification.
+     */
     abstract fun notificationDao(): NotificationDao // <-- Khai báo Dao mới
 
     companion object {
         @Volatile
         private var INSTANCE: FinTrackDatabase? = null
 
+        /**
+         * Lay singleton instance cua Room database.
+         * @param context Context de tao database.
+         * @return Instance duy nhat cua `FinTrackDatabase`.
+         */
         fun getInstance(context: Context): FinTrackDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                val instance = Room.databaseBuilder( // Room: tao database builder voi ten file luu tru
                     context.applicationContext,
                     FinTrackDatabase::class.java,
                     "fintrack_database"

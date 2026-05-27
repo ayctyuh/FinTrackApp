@@ -9,6 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel quan ly giao dich va tong hop so lieu.
+ * Phu thuoc: `TransactionRepository`, `CategoryRepository`.
+ * Duoc su dung boi cac man hinh giao dich/thong ke.
+ */
 class TransactionViewModel(
     private val transactionRepository: TransactionRepository,
     private val categoryRepository: CategoryRepository
@@ -30,7 +35,8 @@ class TransactionViewModel(
     val totalExpense = _totalExpense.asStateFlow()
 
     /**
-     * Lấy tất cả giao dịch của người dùng
+     * Lay tat ca giao dich cua nguoi dung.
+     * @param userId ID nguoi dung.
      */
     private val _spentByCategory = MutableStateFlow<Map<Int, Double>>(emptyMap())
     val spentByCategory = _spentByCategory.asStateFlow()
@@ -56,7 +62,10 @@ class TransactionViewModel(
     }
 
     /**
-     * Lấy giao dịch theo ngày
+     * Lay giao dich theo khoang ngay.
+     * @param userId ID nguoi dung.
+     * @param startDate Thoi gian bat dau.
+     * @param endDate Thoi gian ket thuc.
      */
     fun getTransactionsByDateRange(userId: Int, startDate: Long, endDate: Long) {
         viewModelScope.launch {
@@ -74,7 +83,9 @@ class TransactionViewModel(
     }
 
     /**
-     * Lấy giao dịch theo loại
+     * Lay giao dich theo loai.
+     * @param userId ID nguoi dung.
+     * @param type Loai giao dich.
      */
     fun getTransactionsByType(userId: Int, type: TransactionType) {
         viewModelScope.launch {
@@ -92,7 +103,9 @@ class TransactionViewModel(
     }
 
     /**
-     * Lấy giao dịch theo danh mục
+     * Lay giao dich theo danh muc.
+     * @param userId ID nguoi dung.
+     * @param categoryId ID danh muc.
      */
     fun getTransactionsByCategory(userId: Int, categoryId: Int) {
         viewModelScope.launch {
@@ -110,7 +123,8 @@ class TransactionViewModel(
     }
 
     /**
-     * Thêm giao dịch mới
+     * Them giao dich moi.
+     * @param transaction Doi tuong giao dich.
      */
     fun addTransaction(transaction: Transaction) {
         viewModelScope.launch {
@@ -128,7 +142,8 @@ class TransactionViewModel(
     }
 
     /**
-     * Cập nhật giao dịch
+     * Cap nhat giao dich.
+     * @param transaction Doi tuong giao dich.
      */
     fun updateTransaction(transaction: Transaction) {
         viewModelScope.launch {
@@ -146,7 +161,8 @@ class TransactionViewModel(
     }
 
     /**
-     * Xóa giao dịch
+     * Xoa giao dich.
+     * @param transaction Doi tuong giao dich.
      */
     fun deleteTransaction(transaction: Transaction) {
         viewModelScope.launch {
@@ -164,7 +180,8 @@ class TransactionViewModel(
     }
 
     /**
-     * Sắp xếp giao dịch theo số tiền (tăng/giảm)
+     * Sap xep giao dich theo so tien.
+     * @param ascending Sap xep tang dan neu true.
      */
     fun sortByAmount(ascending: Boolean = true) {
         val sorted = if (ascending) {
@@ -176,7 +193,8 @@ class TransactionViewModel(
     }
 
     /**
-     * Sắp xếp giao dịch theo ngày
+     * Sap xep giao dich theo ngay.
+     * @param ascending Sap xep tang dan neu true.
      */
     fun sortByDate(ascending: Boolean = false) {
         val sorted = if (ascending) {
@@ -188,13 +206,18 @@ class TransactionViewModel(
     }
 
     /**
-     * Cập nhật tổng thu chi
+     * Cap nhat tong thu chi.
+     * @param userId ID nguoi dung.
      */
     private suspend fun updateTotals(userId: Int) {
         _totalIncome.value = transactionRepository.getTotalAmount(userId, TransactionType.INCOME)
         _totalExpense.value = transactionRepository.getTotalAmount(userId, TransactionType.EXPENSE)
     }
 
+    /**
+     * Chon giao dich de xem/soan thao.
+     * @param transaction Giao dich duoc chon.
+     */
     fun setSelectedTransaction(transaction: Transaction) {
         _selectedTransaction.value = transaction
     }

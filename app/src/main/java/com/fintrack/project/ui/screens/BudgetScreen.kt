@@ -68,7 +68,10 @@ private val DividerColor      = Color(0xFFE2E8F0)
 // DATA CLASSES HỖ TRỢ UI
 // ────────────────────────────────────────────────────────────────
 
-/** Trạng thái từng danh mục: icon, tên, đã chi, giới hạn */
+/**
+ * Trang thai ngan sach theo danh muc cho UI.
+ * Duoc su dung boi `BudgetScreen`.
+ */
 data class CategoryBudgetUiState(
     val categoryId: Int,
     val name: String,
@@ -79,7 +82,9 @@ data class CategoryBudgetUiState(
     val budget: Budget?
 )
 
-/** Bước trong wizard thiết lập ngân sách */
+/**
+ * Buoc trong wizard thiet lap ngan sach.
+ */
 enum class BudgetSetupStep { TOTAL, DISTRIBUTE }
 
 // ────────────────────────────────────────────────────────────────
@@ -87,13 +92,15 @@ enum class BudgetSetupStep { TOTAL, DISTRIBUTE }
 // ────────────────────────────────────────────────────────────────
 
 /**
- * BudgetScreen — Màn hình Ngân sách chính.
- *
- * @param userId         ID người dùng hiện tại
- * @param viewModel      BudgetViewModel đã được inject
- * @param spentByCategory Map<categoryId, totalSpent> — lấy từ TransactionViewModel
- * @param categories     Danh sách danh mục của người dùng
- * @param onNavigateTo   Callback điều hướng bottom nav (0=Home,1=Stats,2=Add,3=Budget,4=Profile)
+ * Man hinh ngan sach chinh.
+ * Phu thuoc: `BudgetViewModel` va danh sach `Category`.
+ * Duoc su dung boi luong dieu huong chinh.
+ * @param userId ID nguoi dung.
+ * @param viewModel ViewModel xu ly ngan sach.
+ * @param spentByCategory Tong chi theo danh muc.
+ * @param categories Danh sach danh muc.
+ * @param onNavigateTo Dieu huong bottom nav.
+ * @param onSeeReportClick Callback mo bao cao.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -359,6 +366,21 @@ fun BudgetScreen(
 // ────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Top bar cho man hinh ngan sach.
+ * @param hasMonthlyBudget Da co ngan sach thang hay chua.
+ * @param showBackButton Hien nut quay lai.
+ * @param isWizard Dang o che do wizard.
+ * @param onAddClick Callback them/sua ngan sach.
+ * @param onBackClick Callback quay lai.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param totalLimit Han muc tong.
+ * @param categoryCount So danh muc co han muc.
+ * @param onMonthYearClick Mo chon thang/nam.
+ * @param onPrevMonth Chuyen thang truoc.
+ * @param onNextMonth Chuyen thang sau.
+ */
 @Composable
 private fun BudgetTopBar(
     hasMonthlyBudget: Boolean,
@@ -467,7 +489,13 @@ private fun BudgetTopBar(
     }
 }
 
-// Helper cho stat item trong header xanh
+/**
+ * O thong ke nho trong header.
+ * @param label Tieu de.
+ * @param value Gia tri hien thi.
+ * @param color Mau chu.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 private fun HeaderStatItem(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -479,7 +507,18 @@ private fun HeaderStatItem(label: String, value: String, color: Color, modifier:
     }
 }
 
-// MAIN VIEW — có ngân sách
+/**
+ * View chinh khi da co ngan sach.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param totalLimit Han muc tong.
+ * @param totalSpent Tong da chi.
+ * @param categoryUiList Du lieu UI theo danh muc.
+ * @param onPrevMonth Chuyen thang truoc.
+ * @param onNextMonth Chuyen thang sau.
+ * @param onSeeReportClick Mo bao cao.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 private fun BudgetMainView(
     currentMonth: Int,
@@ -555,6 +594,16 @@ private fun BudgetMainView(
 // EMPTY VIEW — chưa thiết lập ngân sách
 // ────────────────────────────────────────────────────────────────
 
+/**
+ * View khi chua thiet lap ngan sach.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param onPrevMonth Chuyen thang truoc.
+ * @param onNextMonth Chuyen thang sau.
+ * @param onSetupClick Mo wizard thiet lap.
+ * @param onCopyClick Sao chep thang truoc.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 private fun EmptyBudgetView(
     currentMonth: Int,
@@ -626,6 +675,27 @@ private fun EmptyBudgetView(
 // WIZARD THIẾT LẬP NGÂN SÁCH (6 bước A→F)
 // ────────────────────────────────────────────────────────────────
 
+/**
+ * Wizard thiet lap ngan sach.
+ * @param step Buoc hien tai.
+ * @param totalBudgetInput Gia tri ngan sach tong.
+ * @param onTotalChange Callback doi gia tri ngan sach tong.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param categoryUiList Du lieu UI theo danh muc.
+ * @param editingCategory Danh muc dang sua.
+ * @param editLimitInput Gia tri han muc dang sua.
+ * @param onEditLimitChange Callback doi han muc.
+ * @param onEditCategory Callback chon danh muc de sua.
+ * @param onSaveCategory Callback luu danh muc.
+ * @param onProceedToDistribute Sang buoc phan bo.
+ * @param onSkipDistribute Bo qua phan bo.
+ * @param onSaveDistribute Luu phan bo.
+ * @param onBack Quay lai buoc truoc.
+ * @param hasExistingBudget Co ngan sach thang hay chua.
+ * @param onDeleteBudget Xoa ngan sach.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 private fun BudgetSetupWizard(
     step: BudgetSetupStep,
@@ -686,6 +756,18 @@ private fun BudgetSetupWizard(
 // BƯỚC C — Nhập ngân sách tổng
 // ────────────────────────────────────────────────────────────────
 
+/**
+ * Buoc nhap ngan sach tong.
+ * @param input Gia tri nhap.
+ * @param onInputChange Callback doi gia tri.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param isEditing Dang o che do sua.
+ * @param onDelete Callback xoa ngan sach.
+ * @param onBack Callback quay lai.
+ * @param onNext Callback sang buoc tiep theo.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 private fun StepTotalBudget(
     input: String,
@@ -817,6 +899,16 @@ private fun StepTotalBudget(
 // BƯỚC D — Phân bổ ngân sách theo danh mục
 // ────────────────────────────────────────────────────────────────
 
+/**
+ * Buoc phan bo ngan sach theo danh muc.
+ * @param totalBudgetInput Gia tri ngan sach tong.
+ * @param categoryUiList Du lieu UI theo danh muc.
+ * @param onBack Callback quay lai.
+ * @param onEditCategory Callback sua danh muc.
+ * @param onSkip Callback bo qua phan bo.
+ * @param onSave Callback luu phan bo.
+ * @param modifier Modifier cho layout.
+ */
 @Composable
 private fun StepDistribute(
     totalBudgetInput: String,
@@ -901,6 +993,16 @@ private fun StepDistribute(
 // ────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Popup chinh sua han muc danh muc.
+ * @param category Danh muc dang sua.
+ * @param limitInput Gia tri han muc dang nhap.
+ * @param onLimitChange Callback doi gia tri.
+ * @param totalMonthlyBudget Ngan sach tong.
+ * @param otherCategoriesSum Tong han muc cac danh muc khac.
+ * @param onDismiss Dong popup.
+ * @param onSave Luu thay doi.
+ */
 @Composable
 private fun CategoryEditPopup(
     category: CategoryBudgetUiState,
@@ -1059,6 +1161,14 @@ private fun CategoryEditPopup(
 // BƯỚC F — Thiết lập thành công
 // ────────────────────────────────────────────────────────────────
 
+/**
+ * Dialog thong bao thiet lap thanh cong.
+ * @param totalBudget Ngan sach tong.
+ * @param categoryCount So danh muc.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param onDismiss Dong dialog.
+ */
 @Composable
 fun BudgetSuccessDialog(
     totalBudget: Double,
@@ -1139,7 +1249,10 @@ fun BudgetSuccessDialog(
 // ────────────────────────────────────────────────────────────────
 // COMPOSABLES DÙNG LẠI
 // ────────────────────────────────────────────────────────────────
-/** Row một danh mục trong main view */
+/**
+ * Row danh muc trong main view.
+ * @param item Du lieu danh muc.
+ */
 @Composable
 private fun CategoryBudgetRow(
     item: CategoryBudgetUiState,
@@ -1196,7 +1309,11 @@ private fun CategoryBudgetRow(
     }
 }
 
-/** Row danh mục trong bước D */
+/**
+ * Row danh muc trong buoc phan bo.
+ * @param item Du lieu danh muc.
+ * @param onEdit Callback sua danh muc.
+ */
 @Composable
 private fun CategoryDistributeRow(
     item: CategoryBudgetUiState,
@@ -1249,7 +1366,13 @@ private fun CategoryDistributeRow(
     }
 }
 
-// Hàm chọn tháng năm ở giao diện ngân sách chính
+/**
+ * Dialog chon thang/nam.
+ * @param currentMonth Thang hien tai.
+ * @param currentYear Nam hien tai.
+ * @param onDismiss Dong dialog.
+ * @param onConfirm Xac nhan chon thang/nam.
+ */
 @Composable
 fun MonthYearPickerDialog(
     currentMonth: Int,
@@ -1281,7 +1404,14 @@ fun MonthYearPickerDialog(
     )
 }
 
-// Component dùng chung cho cả Tháng và Năm
+/**
+ * Dropdown chon gia tri chung.
+ * @param modifier Modifier cho layout.
+ * @param label Nhan hien thi.
+ * @param selectedValue Gia tri dang chon.
+ * @param items Danh sach gia tri.
+ * @param onItemSelected Callback chon gia tri.
+ */
 @Composable
 private fun DropdownSelector(modifier: Modifier, label: String, selectedValue: Int, items: List<Int>, onItemSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -1304,6 +1434,12 @@ private fun DropdownSelector(modifier: Modifier, label: String, selectedValue: I
     }
 }
 
+/**
+ * Goi y so tien nhanh.
+ * @param currentInput Gia tri hien tai.
+ * @param options Danh sach goi y.
+ * @param onSelect Callback chon gia tri.
+ */
 @Composable
 private fun QuickAmountSuggestions(currentInput: String, options: List<Double>, onSelect: (String) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1324,11 +1460,21 @@ private fun QuickAmountSuggestions(currentInput: String, options: List<Double>, 
     }
 }
 
+/**
+ * Dinh dang tien VND.
+ * @param amount So tien.
+ */
 private fun formatMoney(amount: Double): String {
     val format = NumberFormat.getNumberInstance(Locale("vi", "VN"))
     return "${format.format(amount)} đ"
 }
 
+/**
+ * Tao danh sach UI theo danh muc chi.
+ * @param categories Danh sach danh muc.
+ * @param spentByCategory Tong chi theo danh muc.
+ * @param budgetMap Map han muc theo danh muc.
+ */
 private fun buildCategoryUiList(
     categories: List<Category>,
     spentByCategory: Map<Int, Double>,

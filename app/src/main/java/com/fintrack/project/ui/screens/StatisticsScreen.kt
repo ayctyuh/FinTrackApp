@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.fintrack.project.data.database.FinTrackDatabase
 import com.fintrack.project.data.model.Transaction
 import com.fintrack.project.data.model.TransactionType
+import com.fintrack.project.utils.CurrencyUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -60,7 +61,8 @@ fun StatisticsScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToBudget: () -> Unit,
     onAddClick: () -> Unit,
-    onNavigateToReport: () -> Unit = {}
+    onNavigateToReport: () -> Unit = {},
+    onNavigateToDetail: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var currentUserId by remember { mutableIntStateOf(-1) }
@@ -262,7 +264,7 @@ fun StatisticsScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Số dư hiện tại", color = Color.Gray, fontSize = 12.sp)
                                 }
-                                Text(formatCurrency(totalBalance), color = Color(0xFF10B981), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(CurrencyUtils.formatMoney(totalBalance), color = Color(0xFF10B981), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             }
                             Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color(0xFFF1F5F9)))
                             Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
@@ -271,7 +273,7 @@ fun StatisticsScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Chi tiêu ${selectedTime.label.lowercase()}", color = Color.Gray, fontSize = 12.sp)
                                 }
-                                Text(formatCurrency(periodExpense), color = Color(0xFFEF4444), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(CurrencyUtils.formatMoney(periodExpense), color = Color(0xFFEF4444), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -356,8 +358,11 @@ fun StatisticsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // ✅ ONLY CLICKABLE IF OVERVIEW + MONTH
+                val isClickable = selectedChart == ChartType.OVERVIEW && selectedTime == TimeFilter.MONTH
+
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = isClickable) { onNavigateToDetail() },
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(20.dp),
                     elevation = CardDefaults.cardElevation(2.dp)
@@ -376,17 +381,13 @@ fun StatisticsScreen(
                                 Text(dateLabel, fontSize = 12.sp, color = Color.Gray)
                             }
 
-                            // Chú thích (Legend)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (selectedChart != ChartType.CATEGORY) {
-                                    // Legend cho Tổng hợp / Xu hướng (Thu/Chi)
                                     Box(modifier = Modifier.size(8.dp).background(Color(0xFF10B981), CircleShape)); Spacer(modifier = Modifier.width(4.dp))
                                     Text("Thu", fontSize = 10.sp, color = Color.Gray); Spacer(modifier = Modifier.width(12.dp))
                                     Box(modifier = Modifier.size(8.dp).background(Color(0xFFEF4444), CircleShape)); Spacer(modifier = Modifier.width(4.dp))
                                     Text("Chi", fontSize = 10.sp, color = Color.Gray)
                                 } else if (categoryData.isNotEmpty()) {
-                                    // Chú thích màu sắc cho biểu đồ danh mục (Dựa theo mức độ cao thấp tự động)
-                                    // Chú thích này nằm góc phải trên biểu đồ
                                     @Composable
                                     fun LegendDot(color: Color, label: String) {
                                         Box(modifier = Modifier.size(7.dp).background(color, CircleShape))
@@ -442,7 +443,7 @@ fun StatisticsScreen(
                     Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
                             Text("Chênh lệch ${selectedTime.label.lowercase()} này", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                            Text((if (difference >= 0) "+" else "-") + formatCurrency(Math.abs(difference)), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            Text((if (difference >= 0) "+" else "-") + CurrencyUtils.formatMoney(Math.abs(difference)), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -452,10 +453,6 @@ fun StatisticsScreen(
         }
     }
 }
-
-// ==========================================
-// CÁC HÀM VẼ BIỂU ĐỒ VỚI DỮ LIỆU THẬT
-// ==========================================
 
 @Composable
 fun OverviewBarChart(data: List<ChartDataPoint>) {
@@ -542,56 +539,47 @@ fun CategoryBarChart(data: List<CategoryDataPoint>) {
         return
     }
 
-    // Xác định giá trị cao nhất để tính phần trăm
     val maxVal = data.maxOf { it.expense }.coerceAtLeast(1f)
-    // Chỉ lấy Top 6 danh mục cao nhất
     val displayData = data.take(6)
 
-    // SỬA LỖI LAYOUT BẰNG COLUMN BỌC NGOÀI
     Column(modifier = Modifier.fillMaxSize()) {
-        // PHẦN 1: ROW CHỨA CÁC CỘT (Chiếm phần lớn chiều cao)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f) // Chiếm không gian còn lại (khoảng 80%)
+                .weight(1f)
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom // Cột mọc từ dưới lên
+            verticalAlignment = Alignment.Bottom
         ) {
             displayData.forEach { point ->
                 val value = point.expense
-                // Logic màu sắc cảnh báo tự động
                 val barColor = when {
-                    value >= maxVal * 0.8f -> Color(0xFFEF4444) // Đỏ (Cao nhất)
-                    value >= maxVal * 0.5f -> Color(0xFFF97316) // Cam
-                    value >= maxVal * 0.3f -> Color(0xFFEAB308) // Vàng
-                    else -> Color(0xFF22C55E) // Xanh lá
+                    value >= maxVal * 0.8f -> Color(0xFFEF4444)
+                    value >= maxVal * 0.5f -> Color(0xFFF97316)
+                    value >= maxVal * 0.3f -> Color(0xFFEAB308)
+                    else -> Color(0xFF22C55E)
                 }
 
-                // Cột
-                val barHeight = (value / maxVal).coerceIn(0.01f, 1f) // Giới hạn chiều cao tối thiểu để luôn thấy cột
+                val barHeight = (value / maxVal).coerceIn(0.01f, 1f)
                 Box(
                     modifier = Modifier
-                        .width(18.dp) // Tăng nhẹ độ rộng cột
-                        .fillMaxHeight(barHeight) // Chiều cao dựa theo %
+                        .width(18.dp)
+                        .fillMaxHeight(barHeight)
                         .background(barColor, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                 )
             }
         }
 
-        // KHOẢNG CÁCH CỐ ĐỊNH GIỮA CỘT VÀ TÊN
         Spacer(modifier = Modifier.height(10.dp))
 
-        // PHẦN 2: ROW CHỨA TÊN DANH MỤC (Cố định chiều cao phía dưới)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(24.dp), // Chiều cao cố định cho phần chữ
+                .height(24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Top // Chữ nằm đỉnh của vùng này
+            verticalAlignment = Alignment.Top
         ) {
             displayData.forEach { point ->
-                // Rút gọn tên nếu quá dài
                 val shortName = if (point.categoryName.length > 8) point.categoryName.take(6) + ".." else point.categoryName
                 Text(
                     text = shortName,
@@ -599,7 +587,7 @@ fun CategoryBarChart(data: List<CategoryDataPoint>) {
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
-                    modifier = Modifier.width(42.dp) // Chiều cao chữ đủ rộng để ko bị lún
+                    modifier = Modifier.width(42.dp)
                 )
             }
         }
@@ -622,8 +610,7 @@ fun SummaryCard(title: String, amount: Double, icon: ImageVector, color: Color, 
                 Text(title, fontSize = 12.sp, color = Color.Gray)
             }
             Spacer(modifier = Modifier.height(12.dp))
-            val amountStr = if (amount % 1.0 == 0.0) String.format("%,.0f", amount) else String.format("%,.0f", amount)
-            Text("${amountStr}đ", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(CurrencyUtils.formatMoney(amount), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color)
         }
     }
 }

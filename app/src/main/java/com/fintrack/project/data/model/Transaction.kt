@@ -5,7 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(
+@Entity( // Room: khai bao entity de map data class voi bang SQLite
     tableName = "transactions",
     foreignKeys = [
         ForeignKey(
@@ -27,6 +27,11 @@ import androidx.room.PrimaryKey
         Index("transactionDate")
     ]
 )
+/**
+ * Entity giao dich thu/chi trong Room.
+ * Phu thuoc: Room annotations va entity `User`, `Category`.
+ * Duoc su dung boi `TransactionDao` va `FinTrackDatabase`.
+ */
 data class Transaction(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -41,6 +46,10 @@ data class Transaction(
     val sourceBank: String? = null  // Nguồn nhập (ngân hàng, dịch vụ thanh toán)
 )
 
+/**
+ * Loai giao dich.
+ * Duoc su dung boi `Transaction` va cac truy van thong ke.
+ */
 enum class TransactionType {
     INCOME,      // Thu nhập
     EXPENSE      // Chi tiêu

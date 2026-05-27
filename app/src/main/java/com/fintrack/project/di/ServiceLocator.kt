@@ -8,8 +8,9 @@ import com.fintrack.project.data.repository.TransactionRepository
 import com.fintrack.project.data.repository.UserRepository
 
 /**
- * Service Locator for Dependency Injection (Manual DI)
- * Sẽ upgrade sang Hilt sau khi base setup ổn định
+ * Service Locator cho dependency injection thu cong.
+ * Phu thuoc: `FinTrackDatabase` va cac Repository.
+ * Duoc su dung boi cac thanh phan khoi tao ung dung.
  */
 object ServiceLocator {
     private var database: FinTrackDatabase? = null
@@ -19,12 +20,19 @@ object ServiceLocator {
     private var transactionRepository: TransactionRepository? = null
     private var budgetRepository: BudgetRepository? = null
 
+    /**
+     * Khoi tao database singleton.
+     * @param context Context de tao database.
+     */
     fun initializeDatabase(context: Context) {
         if (database == null) {
             database = FinTrackDatabase.getInstance(context)
         }
     }
 
+    /**
+     * Lay `UserRepository`.
+     */
     fun getUserRepository(): UserRepository {
         return userRepository ?: synchronized(this) {
             val db = database ?: throw IllegalStateException("Database not initialized")
@@ -32,6 +40,9 @@ object ServiceLocator {
         }
     }
 
+    /**
+     * Lay `CategoryRepository`.
+     */
     fun getCategoryRepository(): CategoryRepository {
         return categoryRepository ?: synchronized(this) {
             val db = database ?: throw IllegalStateException("Database not initialized")
@@ -39,6 +50,9 @@ object ServiceLocator {
         }
     }
 
+    /**
+     * Lay `TransactionRepository`.
+     */
     fun getTransactionRepository(): TransactionRepository {
         return transactionRepository ?: synchronized(this) {
             val db = database ?: throw IllegalStateException("Database not initialized")
@@ -46,6 +60,9 @@ object ServiceLocator {
         }
     }
 
+    /**
+     * Lay `BudgetRepository`.
+     */
     fun getBudgetRepository(): BudgetRepository {
         return budgetRepository ?: synchronized(this) {
             val db = database ?: throw IllegalStateException("Database not initialized")
@@ -53,6 +70,9 @@ object ServiceLocator {
         }
     }
 
+    /**
+     * Reset cache repository va database.
+     */
     fun reset() {
         database = null
         userRepository = null

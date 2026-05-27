@@ -40,6 +40,14 @@ val BgGray = Color(0xFFF0F4FF)
 val TextGray = Color(0xFF8A94A6)
 val BorderColor = Color(0xFFE2E8F0)
 
+/**
+ * Man hinh dang nhap.
+ * Phu thuoc: `UserRepository`, `FinTrackDatabase` (Room), Compose UI.
+ * Duoc su dung boi luong xac thuc (Auth flow).
+ * @param onLoginSuccess Callback khi dang nhap thanh cong.
+ * @param onSignupClick Callback chuyen sang man hinh dang ky.
+ * @param onForgotPasswordClick Callback chuyen sang quen mat khau.
+ */
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit = {},

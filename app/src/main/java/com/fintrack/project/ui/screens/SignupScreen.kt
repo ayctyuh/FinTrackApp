@@ -46,6 +46,13 @@ val SignupBgGray = Color(0xFFF0F4FF)
 val SignupBorderColor = Color(0xFFE2E8F0)
 val SignupTextGray = Color(0xFF8A94A6)
 
+/**
+ * Man hinh dang ky tai khoan.
+ * Phu thuoc: `UserRepository`, `FinTrackDatabase` (Room), Compose UI.
+ * Duoc su dung boi luong xac thuc (Auth flow).
+ * @param onSignupSuccess Callback khi dang ky thanh cong.
+ * @param onLoginClick Callback chuyen sang man hinh dang nhap.
+ */
 @Composable
 fun SignupScreen(
     onSignupSuccess: () -> Unit = {},
@@ -278,6 +285,11 @@ fun SignupScreen(
     }
 }
 
+/**
+ * Muc noi dung trong dialog dieu khoan/chinh sach.
+ * @param title Tieu de muc.
+ * @param content Noi dung chi tiet.
+ */
 @Composable
 fun TermSection(title: String, content: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
@@ -287,11 +299,26 @@ fun TermSection(title: String, content: String) {
     }
 }
 
+/**
+ * Label nho cho truong nhap.
+ * @param text Noi dung nhan.
+ */
 @Composable
 fun SLabel(text: String) {
     Text(text = text, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SignupTextGray, letterSpacing = 0.8.sp, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp))
 }
 
+/**
+ * Truong nhap dung lai cho form dang ky.
+ * @param value Gia tri hien tai.
+ * @param onValueChange Callback khi gia tri thay doi.
+ * @param placeholder Chu goi y.
+ * @param leadingIcon Icon ben trai.
+ * @param trailingIcon Icon ben phai (neu co).
+ * @param keyboardType Kieu ban phim.
+ * @param visualTransformation Kieu an/doi noi dung.
+ * @param isSuccess Trang thai thanh cong de doi mau vien.
+ */
 @Composable
 fun SField(
     value: String,

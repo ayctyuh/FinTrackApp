@@ -3,7 +3,12 @@ package com.fintrack.project.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "categories")
+@Entity(tableName = "categories") // Room: khai bao entity de map data class voi bang SQLite
+/**
+ * Entity danh muc thu/chi.
+ * Phu thuoc: Room annotations.
+ * Duoc su dung boi `CategoryDao` va `FinTrackDatabase`.
+ */
 data class Category(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -17,6 +22,10 @@ data class Category(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+/**
+ * Loai danh muc.
+ * Duoc su dung boi `Category` va logic phan loai thu/chi.
+ */
 enum class CategoryType {
     INCOME,      // Thu nhập
     EXPENSE      // Chi tiêu

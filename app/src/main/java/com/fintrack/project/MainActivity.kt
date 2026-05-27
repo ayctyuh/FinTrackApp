@@ -17,6 +17,7 @@ import com.fintrack.project.di.ServiceLocator
 import com.fintrack.project.presentation.viewmodel.BudgetViewModel
 import com.fintrack.project.presentation.viewmodel.TransactionViewModel
 import com.fintrack.project.presentation.viewmodel.ChangePasswordViewModel
+import com.fintrack.project.presentation.viewmodel.StatisticsViewModel
 import com.fintrack.project.data.model.Category
 import com.fintrack.project.data.database.FinTrackDatabase
 import com.fintrack.project.data.model.CategoryType
@@ -45,6 +46,10 @@ class MainActivity : ComponentActivity() {
                             ServiceLocator.getCategoryRepository()
                         )
                     }
+                    val statisticsViewModel = remember {
+                        StatisticsViewModel(ServiceLocator.getTransactionRepository())
+                    }
+                    
                     val categories = remember { mutableStateListOf<Category>() }
 
                     var appState by remember { mutableStateOf<AppState>(AppState.SPLASH) }
@@ -107,12 +112,12 @@ class MainActivity : ComponentActivity() {
                         AppState.SIGNUP -> {
                             SignupScreen(
                                 onSignupSuccess = { backStack.clear(); appState = AppState.LOGIN },
-                                onLoginClick = { appState = AppState.LOGIN } // <--- GỌI onLoginClick ĐỂ VỀ LOGIN
+                                onLoginClick = { appState = AppState.LOGIN } 
                             )
                         }
                         AppState.FORGOT_PASSWORD -> {
                             ForgotPasswordScreen(
-                                onLoginClick = { appState = AppState.LOGIN }, // <--- GỌI onLoginClick ĐỂ VỀ LOGIN
+                                onLoginClick = { appState = AppState.LOGIN }, 
                                 onSignupClick = { navigateTo(AppState.SIGNUP) }
                             )
                         }
@@ -154,7 +159,7 @@ class MainActivity : ComponentActivity() {
 
                             ChangePasswordScreen(
                                 onBackClick = { navigateBack() },
-                                onConfirmClick = { oldPass, newPass -> // Tên này phải khớp với Screen ở Bước 1
+                                onConfirmClick = { oldPass, newPass -> 
                                     cpViewModel.changePassword(
                                         userId = userId,
                                         oldPass = oldPass,
@@ -168,6 +173,24 @@ class MainActivity : ComponentActivity() {
                                         }
                                     )
                                 }
+                            )
+                        }
+                        AppState.STATISTICS -> {
+                            StatisticsScreen(
+                                onNavigateToHome = { navigateTo(AppState.DASHBOARD) },
+                                onNavigateToProfile = { navigateTo(AppState.PROFILE) },
+                                onNavigateToBudget = { navigateTo(AppState.BUDGET) },
+                                onAddClick = { navigateTo(AppState.ADD_TRANSACTION) },
+                                onNavigateToReport = { navigateTo(AppState.MONTHLY_REPORT) },
+                                onNavigateToDetail = { navigateTo(AppState.COMPARISON_DETAIL) }
+                            )
+                        }
+                        AppState.COMPARISON_DETAIL -> {
+                            val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
+                            ChiTietBieuDoScreen(
+                                userId = userId,
+                                viewModel = statisticsViewModel,
+                                onBackClick = { navigateBack() }
                             )
                         }
                         AppState.EDIT_PROFILE -> {
@@ -205,9 +228,6 @@ class MainActivity : ComponentActivity() {
                                 onPinSaved = { navigateBack() }
                             )
                         }
-                        AppState.STATISTICS -> {
-                            StatisticsScreen(onNavigateToHome = { navigateTo(AppState.DASHBOARD) }, onNavigateToProfile = { navigateTo(AppState.PROFILE) }, onNavigateToBudget = { navigateTo(AppState.BUDGET) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, onNavigateToReport = { navigateTo(AppState.MONTHLY_REPORT)})
-                        }
                         AppState.BUDGET -> {
                             val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
                             LaunchedEffect(userId, budgetViewModel.budgets.collectAsState().value) {
@@ -240,7 +260,6 @@ class MainActivity : ComponentActivity() {
                         }
                         AppState.MONTHLY_REPORT -> {
                             val userId = sharedPreferences.getInt("LOGGED_IN_USER_ID", -1)
-                            
                             LaunchedEffect(userId) {
                                 if (userId != -1) {
                                     withContext(Dispatchers.IO) {
@@ -252,15 +271,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-
-                            MonthlyReportScreen(
-                                userId = userId,
-                                viewModel = budgetViewModel,
-                                categories = categories,
-                                onBackClick = { navigateBack() }
-                            )
+                            MonthlyReportScreen(userId = userId, viewModel = budgetViewModel, categories = categories, onBackClick = { navigateBack() })
                         }
-
                         AppState.CATEGORY_LIST -> {
                             CategoryScreen(
                                 onBackClick = { navigateBack() }, onHomeClick = { navigateTo(AppState.DASHBOARD) }, onAddClick = { navigateTo(AppState.ADD_TRANSACTION) }, onNavigateToAddCategory = { navigateTo(AppState.ADD_CATEGORY) },
@@ -285,5 +297,6 @@ enum class AppState {
     SPLASH, WELCOME, LOGIN, SIGNUP, FORGOT_PASSWORD, ONBOARDING, DASHBOARD,
     NOTIFICATIONS, PROFILE, EDIT_PROFILE, SECURITY, PIN_SETUP, TERMS_OF_SERVICE,
     TRANSACTION_HISTORY, ADD_TRANSACTION, STATISTICS, BUDGET, MONTHLY_REPORT,
-    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY, EDIT_TRANSACTION, CHANGE_PASSWORD
+    CATEGORY_LIST, ADD_CATEGORY, EDIT_CATEGORY, EDIT_TRANSACTION, CHANGE_PASSWORD,
+    COMPARISON_DETAIL
 }
