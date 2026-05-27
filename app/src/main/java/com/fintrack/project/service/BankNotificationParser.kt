@@ -1,10 +1,10 @@
 package com.fintrack.project.service
 
 import com.fintrack.project.data.model.TransactionType
-
+import java.text.SimpleDateFormat
+import java.util.Locale
 /**
- * Du lieu giao dich sau khi parse thong bao ngan hang.
- * Duoc su dung boi `BankNotificationListenerService` va UI nhap lieu.
+ * Kết quả sau khi parse thông báo ngân hàng.
  */
 data class ParsedBankTransaction(
     val amount: Double,
@@ -16,11 +16,6 @@ data class ParsedBankTransaction(
     val rawText: String = ""
 )
 
-/**
- * Parser thong bao ngan hang sang giao dich.
- * Phu thuoc: Regex va `TransactionType`.
- * Duoc su dung boi `BankNotificationListenerService`.
- */
 object BankNotificationParser {
 
     // ─── Nhận diện ngân hàng ────────────────────────────────────────────────
@@ -70,6 +65,13 @@ object BankNotificationParser {
         RegexOption.IGNORE_CASE
     )
 
+    // ─── Regex parse thời gian giao dịch ─────────────────────────────────────
+    // Hỗ trợ bắt chuỗi dạng: "21-04-2026 09:58:32" hoặc "09:58:32 21/04/2026"
+    private val DATE_TIME_REGEX = Regex(
+        """(\d{2}[-/]\d{2}[-/]\d{4}\s+\d{2}:\d{2}:\d{2}|\d{2}:\d{2}:\d{2}\s+\d{2}[-/]\d{2}[-/]\d{4})""",
+        RegexOption.IGNORE_CASE
+    )
+
     // ─── Từ khoá loại bỏ thông báo quảng cáo ───────────────────────────────
 
     private val PROMO_KEYWORDS = listOf(
@@ -90,12 +92,8 @@ object BankNotificationParser {
 
     // ─── API chính ───────────────────────────────────────────────────────────
 
-    /**
-     * Parse tieu de/noi dung thanh giao dich.
-     * @param title Tieu de thong bao.
-     * @param content Noi dung thong bao.
-     */
-    fun parse(title: String, content: String): ParsedBankTransaction? {
+    // Hàm chính để phân tích nội dung thông báo ngân hàng
+    fun parse(title: String, content: String, postTime: Long = System.currentTimeMillis()): ParsedBankTransaction? {
         val fullText = "$title $content"
         val lowerText = fullText.lowercase()
 
@@ -111,46 +109,58 @@ object BankNotificationParser {
         val description = parseDescription(fullText)
             ?: buildDefaultDescription(bankName, type)
 
+        val extractedTime = parseTransactionTime(fullText, postTime)
+
         return ParsedBankTransaction(
             amount      = amount,
             type        = type,
             bankName    = bankName,
             description = description,
             balance     = balance,
+            timestamp   = extractedTime,
             rawText     = fullText
         )
     }
 
-    /**
-     * Nhan dien ten ngan hang tu van ban.
-     * @param text Chuoi can kiem tra.
-     */
+    // Trích xuất thời gian giao dịch từ văn bản
+    private fun parseTransactionTime(text: String, fallbackTime: Long): Long {
+        val match = DATE_TIME_REGEX.find(text)
+        if (match != null) {
+            try {
+                // Chuẩn hóa dấu '-' thành '/' để dễ convert
+                val dateStr = match.groupValues[1].replace("-", "/")
+
+                // Kiểm tra xem giờ hay ngày đứng trước để cấu hình format
+                val isTimeFirst = dateStr[2] == ':'
+                val pattern = if (isTimeFirst) "HH:mm:ss dd/MM/yyyy" else "dd/MM/yyyy HH:mm:ss"
+
+                val format = SimpleDateFormat(pattern, Locale.getDefault())
+                return format.parse(dateStr)?.time ?: fallbackTime
+            } catch (e: Exception) {
+                return fallbackTime
+            }
+        }
+        return fallbackTime
+    }
+
+    // Nhận diện tên ngân hàng dựa trên từ khóa
     private fun detectBank(text: String): String? =
         BANK_KEYWORDS.entries.firstOrNull { (_, keywords) ->
             keywords.any { text.contains(it, ignoreCase = true) }
         }?.key
 
-    /**
-     * Kiem tra thong bao quang cao.
-     * @param lowerText Chuoi da lower-case.
-     */
+    // Kiểm tra xem thông báo có phải là quảng cáo không
     private fun isPromotional(lowerText: String): Boolean {
         val hasPromo = PROMO_KEYWORDS.any { lowerText.contains(it) }
         val hasTransaction = TRANSACTION_KEYWORDS.any { lowerText.contains(it) }
         return hasPromo && !hasTransaction
     }
 
-    /**
-     * Kiem tra thong bao giao dich.
-     * @param lowerText Chuoi da lower-case.
-     */
+    // Kiểm tra xem có phải thông báo giao dịch hay không
     private fun isTransactionNotification(lowerText: String): Boolean =
         TRANSACTION_KEYWORDS.any { lowerText.contains(it) }
 
-    /**
-     * Parse so tien va loai giao dich.
-     * @param text Chuoi can parse.
-     */
+    // Phân tích số tiền và loại giao dịch (Thu/Chi)
     private fun parseAmountAndType(text: String): Pair<Double, TransactionType>? {
         SIGNED_AMOUNT.find(text)?.let { match ->
             val sign   = match.groupValues[1]
@@ -169,32 +179,19 @@ object BankNotificationParser {
         return null
     }
 
-    /**
-     * Parse so du neu co.
-     * @param text Chuoi can parse.
-     */
+    // Trích xuất số dư sau giao dịch
     private fun parseBalance(text: String): Double? =
         BALANCE_REGEX.find(text)?.let { parseAmount(it.groupValues[1]) }
 
-    /**
-     * Parse mo ta giao dich.
-     * @param text Chuoi can parse.
-     */
+    // Trích xuất nội dung mô tả giao dịch
     private fun parseDescription(text: String): String? =
         DESCRIPTION_REGEX.find(text)?.groupValues?.get(1)?.trim()?.take(100)
 
-    /**
-     * Tao mo ta mac dinh khi thieu noi dung.
-     * @param bank Ten ngan hang.
-     * @param type Loai giao dich.
-     */
+    // Tạo nội dung mô tả mặc định nếu không tìm thấy
     private fun buildDefaultDescription(bank: String, type: TransactionType): String =
         if (type == TransactionType.INCOME) "Thu nhập từ $bank" else "Chi tiêu tại $bank"
 
-    /**
-     * Chuan hoa va parse so tien.
-     * @param raw Chuoi so tien.
-     */
+    // Chuyển đổi chuỗi văn bản thành số Double
     private fun parseAmount(raw: String): Double? {
         if (raw.isBlank()) return null
         return try {

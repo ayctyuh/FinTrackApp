@@ -16,9 +16,17 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 /**
- * Service lang nghe thong bao he thong de nhan giao dich ngan hang.
- * Phu thuoc: Android Notification API, `BankNotificationParser`, SharedPreferences.
- * Duoc su dung boi man hinh nhap tu thong bao (BankNotificationImportSheet).
+ * Service lắng nghe tất cả thông báo hệ thống Android.
+ *
+ * Khi phát hiện thông báo giao dịch từ ngân hàng:
+ *  1. Parse nội dung bằng [BankNotificationParser]
+ *  2. Lưu vào hàng chờ trong SharedPreferences (key: "pending_bank_txns")
+ *  3. Hiện notification cho user biết có giao dịch chờ xác nhận
+ *
+ * Quyền cần cấp: Settings > Quyền truy cập thông báo (Notification Access)
+ * → Không thể request bằng code, phải hướng dẫn user vào Settings tự cấp.
+ *
+ * Kích hoạt qua AndroidManifest (xem README bên dưới).
  */
 class BankNotificationListenerService : NotificationListenerService() {
 
@@ -43,10 +51,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         private val gson = Gson()
         private val listType = object : TypeToken<MutableList<ParsedBankTransaction>>() {}.type
 
-        /**
-         * Lay danh sach giao dich dang cho xac nhan.
-         * @param context Context de doc SharedPreferences.
-         */
+        /** Lấy danh sách giao dịch đang chờ xác nhận. */
         fun getPendingTransactions(context: Context): List<ParsedBankTransaction> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val json  = prefs.getString(KEY_PENDING_TXN, null) ?: return emptyList()
@@ -57,20 +62,13 @@ class BankNotificationListenerService : NotificationListenerService() {
             }
         }
 
-        /**
-         * Xoa tat ca giao dich trong hang cho.
-         * @param context Context de ghi SharedPreferences.
-         */
+        /** Xóa tất cả giao dịch khỏi hàng chờ (sau khi user xác nhận / bỏ qua). */
         fun clearPendingTransactions(context: Context) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().remove(KEY_PENDING_TXN).apply()
         }
 
-        /**
-         * Xoa mot giao dich theo index.
-         * @param context Context de ghi SharedPreferences.
-         * @param index Vi tri can xoa.
-         */
+        /** Xóa một giao dịch cụ thể khỏi hàng chờ theo index. */
         fun removePendingTransaction(context: Context, index: Int) {
             val list = getPendingTransactions(context).toMutableList()
             if (index in list.indices) {
@@ -79,10 +77,7 @@ class BankNotificationListenerService : NotificationListenerService() {
             }
         }
 
-        /**
-         * Kiem tra quyen Notification Access.
-         * @param context Context de doc Settings.
-         */
+        /** Kiểm tra xem quyền Notification Access đã được cấp chưa. */
         fun isNotificationAccessGranted(context: Context): Boolean {
             val enabledPackages = android.provider.Settings
                 .Secure
@@ -93,11 +88,7 @@ class BankNotificationListenerService : NotificationListenerService() {
 
         // ─── Private helpers ──────────────────────────────────────────────────
 
-        /**
-         * Luu danh sach giao dich vao hang cho.
-         * @param context Context de ghi SharedPreferences.
-         * @param list Danh sach can luu.
-         */
+        /** Lưu danh sách giao dịch vào bộ nhớ tạm. */
         private fun savePendingList(context: Context, list: List<ParsedBankTransaction>) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -105,11 +96,7 @@ class BankNotificationListenerService : NotificationListenerService() {
                 .apply()
         }
 
-        /**
-         * Them giao dich vao hang cho, co chong trung lap.
-         * @param context Context de ghi SharedPreferences.
-         * @param txn Giao dich vua parse.
-         */
+        /** Thêm giao dịch mới vào hàng chờ. */
         private fun addPendingTransaction(context: Context, txn: ParsedBankTransaction) {
             val list = getPendingTransactions(context).toMutableList()
 
@@ -133,18 +120,14 @@ class BankNotificationListenerService : NotificationListenerService() {
     // Vòng đời Service
     // ──────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Khoi tao service va channel thong bao.
-     */
+    /** Khởi tạo service. */
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         Log.d(TAG, "BankNotificationListenerService đã khởi động")
     }
 
-    /**
-     * Huy service khi he thong dung.
-     */
+    /** Hủy service. */
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "BankNotificationListenerService đã dừng")
@@ -154,10 +137,7 @@ class BankNotificationListenerService : NotificationListenerService() {
     // Nhận thông báo mới
     // ──────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Nhan thong bao moi tu he thong.
-     * @param sbn Thong bao he thong.
-     */
+    /** Xử lý khi có thông báo mới. */
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         try {
             val extras = sbn.notification?.extras ?: return
@@ -165,13 +145,21 @@ class BankNotificationListenerService : NotificationListenerService() {
             val title   = extras.getCharSequence("android.title")?.toString()   ?: ""
             val content = extras.getCharSequence("android.text")?.toString()    ?: ""
             val bigText = extras.getCharSequence("android.bigText")?.toString() ?: ""
+            val postTime = sbn.postTime
+
+            Log.d(TAG, "====================")
+            Log.d(TAG, "PACKAGE = ${sbn.packageName}")
+
+            for (key in extras.keySet()) {
+                Log.d(TAG, "KEY = $key VALUE = ${extras.get(key)}")
+            }
 
             // Ưu tiên bigText nếu có (thường dài hơn, đầy đủ hơn)
             val bodyText = if (bigText.isNotBlank()) bigText else content
 
             Log.d(TAG, "Thông báo từ [${sbn.packageName}] title=$title")
 
-            val parsed = BankNotificationParser.parse(title, bodyText) ?: return
+            val parsed = BankNotificationParser.parse(title, bodyText, postTime) ?: return
 
             Log.i(TAG, "✅ Parse thành công: ${parsed.bankName} ${parsed.type} ${parsed.amount}")
 
@@ -183,10 +171,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         }
     }
 
-    /**
-     * Xu ly khi thong bao bi go.
-     * @param sbn Thong bao he thong.
-     */
+    /** Xử lý khi thông báo bị xóa. */
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         // Không cần xử lý
     }
@@ -195,9 +180,7 @@ class BankNotificationListenerService : NotificationListenerService() {
     // Hiện notification tóm tắt cho user
     // ──────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Hien thong bao tom tat so giao dich cho xac nhan.
-     */
+    /** Hiển thị thông báo tóm tắt cho người dùng. */
     private fun showSummaryNotification() {
         val pendingCount = getPendingTransactions(applicationContext).size
 
@@ -227,9 +210,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         notificationManager.notify(SUMMARY_NOTIFICATION_ID, notification)
     }
 
-    /**
-     * Tao notification channel cho Android O+.
-     */
+    /** Tạo kênh thông báo cho Android 8.0+. */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
