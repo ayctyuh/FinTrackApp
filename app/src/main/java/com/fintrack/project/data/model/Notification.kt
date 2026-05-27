@@ -34,6 +34,11 @@ import androidx.room.PrimaryKey
         Index("budgetId")
     ]
 )
+/**
+ * Entity thong bao trong Room.
+ * Phu thuoc: Room annotations va entity lien quan.
+ * Duoc su dung boi `NotificationDao` va `FinTrackDatabase`.
+ */
 data class Notification(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
@@ -48,7 +53,10 @@ data class Notification(
     val message: String
 )
 
-// Enum phân loại thông báo
+/**
+ * Loai thong bao.
+ * Duoc su dung boi `Notification` va logic hien thi.
+ */
 enum class NotificationType {
     REMINDER,       // Nhắc nhở (màu xanh dương)
     UPDATE,         // Cập nhật (màu xanh lá)

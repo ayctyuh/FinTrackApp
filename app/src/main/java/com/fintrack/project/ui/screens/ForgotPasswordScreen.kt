@@ -33,6 +33,13 @@ val FPBgGray = Color(0xFFF0F4FF)
 val FPBorderColor = Color(0xFFE2E8F0)
 val FPTextGray = Color(0xFF8A94A6)
 
+/**
+ * Man hinh quen mat khau theo tung buoc.
+ * Phu thuoc: Compose UI va logic dem nguoc noi bo.
+ * Duoc su dung boi luong xac thuc (Auth flow).
+ * @param onLoginClick Callback quay lai dang nhap.
+ * @param onSignupClick Callback chuyen sang dang ky.
+ */
 @Composable
 fun ForgotPasswordScreen(
     onLoginClick: () -> Unit = {}, // <-- SỬA: onLoginClick thay vì onBackClick
@@ -80,6 +87,10 @@ fun ForgotPasswordScreen(
 }
 
 // ------------------- Các component phụ trợ -------------------
+/**
+ * Thanh chi bao buoc hien tai.
+ * @param currentStep Buoc dang hien thi.
+ */
 @Composable
 private fun StepIndicator(currentStep: Int) {
     val steps = listOf("Email", "Mã OTP", "Mật khẩu mới")
@@ -103,6 +114,11 @@ private fun StepIndicator(currentStep: Int) {
     }
 }
 
+/**
+ * Buoc nhap email de nhan OTP.
+ * @param onNext Callback sang buoc tiep theo.
+ * @param onSignupClick Callback chuyen sang dang ky.
+ */
 @Composable
 private fun EmailStep(onNext: () -> Unit, onSignupClick: () -> Unit) {
     var email by remember { mutableStateOf("") }
@@ -135,6 +151,10 @@ private fun EmailStep(onNext: () -> Unit, onSignupClick: () -> Unit) {
     }
 }
 
+/**
+ * Buoc nhap ma OTP.
+ * @param onNext Callback sang buoc tiep theo.
+ */
 @Composable
 private fun OTPStep(onNext: () -> Unit) {
     var otp by remember { mutableStateOf(List(6) { "" }) }
@@ -172,6 +192,10 @@ private fun OTPStep(onNext: () -> Unit) {
     }
 }
 
+/**
+ * Buoc tao mat khau moi.
+ * @param onNext Callback hoan tat buoc.
+ */
 @Composable
 private fun NewPasswordStep(onNext: () -> Unit) {
     var password by remember { mutableStateOf("") }
@@ -231,6 +255,10 @@ private fun NewPasswordStep(onNext: () -> Unit) {
     }
 }
 
+/**
+ * Buoc thong bao thanh cong.
+ * @param onBackToLogin Callback quay ve dang nhap.
+ */
 @Composable
 private fun SuccessStep(onBackToLogin: () -> Unit) {
     LaunchedEffect(Unit) { delay(3000); onBackToLogin() }

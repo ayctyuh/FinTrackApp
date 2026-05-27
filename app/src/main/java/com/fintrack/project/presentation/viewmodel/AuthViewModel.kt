@@ -8,6 +8,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel xu ly dang nhap/dang ky nguoi dung.
+ * Phu thuoc: `UserRepository`, `SecurityUtils`.
+ * Duoc su dung boi cac man hinh xac thuc.
+ */
 class AuthViewModel(
     private val userRepository: UserRepository
 ) : BaseViewModel() {
@@ -25,7 +30,9 @@ class AuthViewModel(
     val signupSuccess = _signupSuccess.asStateFlow()
 
     /**
-     * Đăng nhập người dùng
+     * Dang nhap nguoi dung.
+     * @param username Ten dang nhap hoac username.
+     * @param password Mat khau thuan.
      */
     fun login(username: String, password: String) {
         viewModelScope.launch {
@@ -58,7 +65,11 @@ class AuthViewModel(
     }
 
     /**
-     * Đăng ký người dùng mới
+     * Dang ky nguoi dung moi.
+     * @param username Ten dang nhap.
+     * @param email Email nguoi dung.
+     * @param password Mat khau.
+     * @param confirmPassword Xac nhan mat khau.
      */
     fun signup(username: String, email: String, password: String, confirmPassword: String) {
         viewModelScope.launch {
@@ -134,7 +145,7 @@ class AuthViewModel(
     }
 
     /**
-     * Đăng xuất
+     * Dang xuat, xoa trang thai hien tai.
      */
     fun logout() {
         _currentUser.value = null
@@ -142,7 +153,7 @@ class AuthViewModel(
     }
 
     /**
-     * Reset login/signup success states
+     * Reset trang thai thanh cong dang nhap/dang ky.
      */
     fun resetStates() {
         _loginSuccess.value = false

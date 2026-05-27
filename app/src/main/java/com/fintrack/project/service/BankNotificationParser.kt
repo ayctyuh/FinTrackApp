@@ -3,7 +3,8 @@ package com.fintrack.project.service
 import com.fintrack.project.data.model.TransactionType
 
 /**
- * Kết quả sau khi parse thông báo ngân hàng.
+ * Du lieu giao dich sau khi parse thong bao ngan hang.
+ * Duoc su dung boi `BankNotificationListenerService` va UI nhap lieu.
  */
 data class ParsedBankTransaction(
     val amount: Double,
@@ -15,6 +16,11 @@ data class ParsedBankTransaction(
     val rawText: String = ""
 )
 
+/**
+ * Parser thong bao ngan hang sang giao dich.
+ * Phu thuoc: Regex va `TransactionType`.
+ * Duoc su dung boi `BankNotificationListenerService`.
+ */
 object BankNotificationParser {
 
     // ─── Nhận diện ngân hàng ────────────────────────────────────────────────
@@ -84,6 +90,11 @@ object BankNotificationParser {
 
     // ─── API chính ───────────────────────────────────────────────────────────
 
+    /**
+     * Parse tieu de/noi dung thanh giao dich.
+     * @param title Tieu de thong bao.
+     * @param content Noi dung thong bao.
+     */
     fun parse(title: String, content: String): ParsedBankTransaction? {
         val fullText = "$title $content"
         val lowerText = fullText.lowercase()
@@ -110,20 +121,36 @@ object BankNotificationParser {
         )
     }
 
+    /**
+     * Nhan dien ten ngan hang tu van ban.
+     * @param text Chuoi can kiem tra.
+     */
     private fun detectBank(text: String): String? =
         BANK_KEYWORDS.entries.firstOrNull { (_, keywords) ->
             keywords.any { text.contains(it, ignoreCase = true) }
         }?.key
 
+    /**
+     * Kiem tra thong bao quang cao.
+     * @param lowerText Chuoi da lower-case.
+     */
     private fun isPromotional(lowerText: String): Boolean {
         val hasPromo = PROMO_KEYWORDS.any { lowerText.contains(it) }
         val hasTransaction = TRANSACTION_KEYWORDS.any { lowerText.contains(it) }
         return hasPromo && !hasTransaction
     }
 
+    /**
+     * Kiem tra thong bao giao dich.
+     * @param lowerText Chuoi da lower-case.
+     */
     private fun isTransactionNotification(lowerText: String): Boolean =
         TRANSACTION_KEYWORDS.any { lowerText.contains(it) }
 
+    /**
+     * Parse so tien va loai giao dich.
+     * @param text Chuoi can parse.
+     */
     private fun parseAmountAndType(text: String): Pair<Double, TransactionType>? {
         SIGNED_AMOUNT.find(text)?.let { match ->
             val sign   = match.groupValues[1]
@@ -142,15 +169,32 @@ object BankNotificationParser {
         return null
     }
 
+    /**
+     * Parse so du neu co.
+     * @param text Chuoi can parse.
+     */
     private fun parseBalance(text: String): Double? =
         BALANCE_REGEX.find(text)?.let { parseAmount(it.groupValues[1]) }
 
+    /**
+     * Parse mo ta giao dich.
+     * @param text Chuoi can parse.
+     */
     private fun parseDescription(text: String): String? =
         DESCRIPTION_REGEX.find(text)?.groupValues?.get(1)?.trim()?.take(100)
 
+    /**
+     * Tao mo ta mac dinh khi thieu noi dung.
+     * @param bank Ten ngan hang.
+     * @param type Loai giao dich.
+     */
     private fun buildDefaultDescription(bank: String, type: TransactionType): String =
         if (type == TransactionType.INCOME) "Thu nhập từ $bank" else "Chi tiêu tại $bank"
 
+    /**
+     * Chuan hoa va parse so tien.
+     * @param raw Chuoi so tien.
+     */
     private fun parseAmount(raw: String): Double? {
         if (raw.isBlank()) return null
         return try {
