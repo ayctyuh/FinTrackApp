@@ -16,9 +16,9 @@
 | STT | Họ và Tên | MSSV | Nhiệm vụ |
 |-----|----------|------|----------|
 | 1 | Nguyễn Quang Huy | B22DCAT143 | Biểu đồ thu–chi tổng hợp, biểu đồ theo danh mục, biểu đồ xu hướng |
-| 2 | Cao Đăng Khánh | B22DCAT... | Xác thực (đăng ký/đăng nhập), nhập liệu tự động, thiết lập ngân sách |
-| 3 | Vũ Đức Mạnh | B22DCAT... | Quản lý giao dịch, phân loại, xem lịch sử, tìm kiếm & sắp xếp |
-| 4 | Đinh Quang Lâm | B22DCAT... | Biểu đồ so sánh thu–chi, theo dõi & cảnh báo ngân sách, báo cáo tháng |
+| 2 | Cao Đăng Khánh | B22DCAT163 | Xác thực (đăng ký/đăng nhập), nhập liệu tự động, thiết lập ngân sách |
+| 3 | Vũ Đức Mạnh | B22DCAT187 | Quản lý giao dịch, phân loại, xem lịch sử, tìm kiếm & sắp xếp |
+| 4 | Đinh Quang Lâm | B22DCAT167 | Biểu đồ so sánh thu–chi, theo dõi & cảnh báo ngân sách, báo cáo tháng |
 
 ---
 
